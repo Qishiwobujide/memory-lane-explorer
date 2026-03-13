@@ -82,6 +82,12 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         e.preventDefault();
       }
 
+      // Tricks (snowboard only, while airborne)
+      if (e.key === '1') startTrick(player, 'flip');
+      if (e.key === '2') startTrick(player, 'grab');
+      if (e.key === '3') startTrick(player, 'spin');
+      }
+
       if (e.key === 'Escape') {
         onBack();
       }
