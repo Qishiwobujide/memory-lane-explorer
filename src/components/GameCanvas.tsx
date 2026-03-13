@@ -151,8 +151,17 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       // Player
       if (!showViewer) {
         updatePlayer(player, state.keys, platforms, w, h);
+        updateTrick(player);
       }
-      drawPlayer(ctx, player);
+      drawPlayer(ctx, player, time);
+
+      // Trick name display
+      if (player.trick && player.trickTimer > 0) {
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+        ctx.font = '12px "Press Start 2P", monospace';
+        const trickName = player.trick === 'flip' ? '🔄 FLIP!' : player.trick === 'grab' ? '🤙 GRAB!' : '🌀 SPIN!';
+        ctx.fillText(trickName, player.x - 20, player.y - 20);
+      }
 
       // Scene name overlay
       ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
