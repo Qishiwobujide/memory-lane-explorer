@@ -15,7 +15,7 @@ const trickControls = [
   { key: '3', label: 'Spin' },
 ];
 
-const ControlsOverlay = () => {
+const ControlsOverlay = ({ showTricks = false }: ControlsOverlayProps) => {
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex gap-3 px-4 py-2 bg-card/90 border border-primary/40" style={{ borderRadius: 'var(--radius)' }}>
       {controls.map((c) => (
