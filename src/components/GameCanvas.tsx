@@ -207,7 +207,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         className="fixed inset-0 z-10"
         style={{ imageRendering: 'pixelated' }}
       />
-      <ControlsOverlay />
+      <ControlsOverlay showTricks={sceneKey === 'japan'} />
       {showViewer && (
         <MemoryViewer sceneName={sceneKey} onClose={handleCloseViewer} />
       )}
