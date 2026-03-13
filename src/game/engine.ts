@@ -100,6 +100,31 @@ export function tryJump(player: Player) {
   }
 }
 
+export function startTrick(player: Player, trick: 'flip' | 'grab' | 'spin') {
+  if (!player.onGround && player.snowboarding && !player.trick) {
+    player.trick = trick;
+    player.trickTimer = 30; // frames
+    player.trickRotation = 0;
+  }
+}
+
+export function updateTrick(player: Player) {
+  if (player.trick && player.trickTimer > 0) {
+    player.trickTimer--;
+    player.trickRotation += Math.PI * 2 / 30; // full rotation over 30 frames
+    if (player.trickTimer <= 0) {
+      player.trick = null;
+      player.trickRotation = 0;
+    }
+  }
+  // Cancel trick on landing
+  if (player.onGround && player.trick) {
+    player.trick = null;
+    player.trickTimer = 0;
+    player.trickRotation = 0;
+  }
+}
+
 export function checkProximity(
   player: Player,
   targetX: number,
