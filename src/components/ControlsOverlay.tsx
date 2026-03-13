@@ -1,8 +1,18 @@
+interface ControlsOverlayProps {
+  showTricks?: boolean;
+}
+
 const controls = [
   { key: '←→', label: 'Move' },
   { key: 'SPACE', label: 'Jump (3×)' },
   { key: 'ENTER', label: 'Grab Memory' },
   { key: 'ESC', label: 'Menu' },
+];
+
+const trickControls = [
+  { key: '1', label: 'Flip' },
+  { key: '2', label: 'Grab' },
+  { key: '3', label: 'Spin' },
 ];
 
 const ControlsOverlay = () => {
