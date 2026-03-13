@@ -18,6 +18,9 @@ export function createPlayer(): Player {
     snowboarding: false,
     jumpsRemaining: 3,
     maxJumps: 3,
+    trick: null,
+    trickTimer: 0,
+    trickRotation: 0,
   };
 }
 
