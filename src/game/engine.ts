@@ -40,9 +40,9 @@ export function updatePlayer(
 ) {
   // Horizontal movement
   if (player.snowboarding) {
-    player.velocityX = 6;
-    if (keys['ArrowLeft']) player.velocityX -= 3;
-    if (keys['ArrowRight']) player.velocityX += 3;
+    player.velocityX = 2;
+    if (keys['ArrowLeft']) player.velocityX = -player.speed;
+    if (keys['ArrowRight']) player.velocityX = player.speed + 2;
   } else {
     player.velocityX = 0;
     if (keys['ArrowLeft']) {
