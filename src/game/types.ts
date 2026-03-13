@@ -14,6 +14,9 @@ export interface Player {
   snowboarding: boolean;
   jumpsRemaining: number;
   maxJumps: number;
+  trick: string | null;
+  trickTimer: number;
+  trickRotation: number;
 }
 
 export interface Platform {

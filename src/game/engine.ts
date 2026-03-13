@@ -18,6 +18,9 @@ export function createPlayer(): Player {
     snowboarding: false,
     jumpsRemaining: 3,
     maxJumps: 3,
+    trick: null,
+    trickTimer: 0,
+    trickRotation: 0,
   };
 }
 
@@ -97,6 +100,31 @@ export function tryJump(player: Player) {
   }
 }
 
+export function startTrick(player: Player, trick: 'flip' | 'grab' | 'spin') {
+  if (!player.onGround && player.snowboarding && !player.trick) {
+    player.trick = trick;
+    player.trickTimer = 30; // frames
+    player.trickRotation = 0;
+  }
+}
+
+export function updateTrick(player: Player) {
+  if (player.trick && player.trickTimer > 0) {
+    player.trickTimer--;
+    player.trickRotation += Math.PI * 2 / 30; // full rotation over 30 frames
+    if (player.trickTimer <= 0) {
+      player.trick = null;
+      player.trickRotation = 0;
+    }
+  }
+  // Cancel trick on landing
+  if (player.onGround && player.trick) {
+    player.trick = null;
+    player.trickTimer = 0;
+    player.trickRotation = 0;
+  }
+}
+
 export function checkProximity(
   player: Player,
   targetX: number,
@@ -119,12 +147,24 @@ export function drawPlatforms(ctx: CanvasRenderingContext2D, platforms: Platform
   }
 }
 
-export function drawPlayer(ctx: CanvasRenderingContext2D, player: Player) {
+export function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, time: number = 0) {
   ctx.save();
   const cx = player.x + player.width / 2;
   const cy = player.y + player.height / 2;
 
-  if (player.direction === 'left') {
+  // Trick rotation
+  if (player.trick && player.trickTimer > 0) {
+    ctx.translate(cx, cy);
+    if (player.trick === 'flip') {
+      ctx.rotate(player.trickRotation);
+    } else if (player.trick === 'spin') {
+      ctx.scale(Math.cos(player.trickRotation * 2), 1);
+    }
+    // Grab: scrunch pose handled below
+    ctx.translate(-cx, -cy);
+  }
+
+  if (player.direction === 'left' && !(player.trick === 'spin' && player.trickTimer > 0)) {
     ctx.translate(cx, cy);
     ctx.scale(-1, 1);
     ctx.translate(-cx, -cy);

@@ -5,6 +5,8 @@ import {
   createPlayer,
   updatePlayer,
   tryJump,
+  startTrick,
+  updateTrick,
   checkProximity,
   drawPlatforms,
   drawPlayer,
@@ -80,6 +82,11 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         e.preventDefault();
       }
 
+      // Tricks (snowboard only, while airborne)
+      if (e.key === '1') startTrick(player, 'flip');
+      if (e.key === '2') startTrick(player, 'grab');
+      if (e.key === '3') startTrick(player, 'spin');
+
       if (e.key === 'Escape') {
         onBack();
       }
@@ -143,8 +150,17 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       // Player
       if (!showViewer) {
         updatePlayer(player, state.keys, platforms, w, h);
+        updateTrick(player);
       }
-      drawPlayer(ctx, player);
+      drawPlayer(ctx, player, time);
+
+      // Trick name display
+      if (player.trick && player.trickTimer > 0) {
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+        ctx.font = '12px "Press Start 2P", monospace';
+        const trickName = player.trick === 'flip' ? '🔄 FLIP!' : player.trick === 'grab' ? '🤙 GRAB!' : '🌀 SPIN!';
+        ctx.fillText(trickName, player.x - 20, player.y - 20);
+      }
 
       // Scene name overlay
       ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
@@ -191,7 +207,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         className="fixed inset-0 z-10"
         style={{ imageRendering: 'pixelated' }}
       />
-      <ControlsOverlay />
+      <ControlsOverlay showTricks={sceneKey === 'japan'} />
       {showViewer && (
         <MemoryViewer sceneName={sceneKey} onClose={handleCloseViewer} />
       )}
