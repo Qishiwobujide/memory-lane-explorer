@@ -140,6 +140,17 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, player: Player) {
   ctx.arc(player.x + 20, player.y + 12, 12, 0, Math.PI * 2);
   ctx.fill();
 
+  // Red hair
+  ctx.fillStyle = '#CC2200';
+  ctx.beginPath();
+  ctx.arc(player.x + 20, player.y + 8, 12, Math.PI, 0);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(player.x + 14, player.y + 6, 5, 0, Math.PI * 2);
+  ctx.arc(player.x + 26, player.y + 6, 5, 0, Math.PI * 2);
+  ctx.arc(player.x + 20, player.y + 3, 6, 0, Math.PI * 2);
+  ctx.fill();
+
   // Eyes
   ctx.fillStyle = '#333';
   ctx.beginPath();
