@@ -5,6 +5,8 @@ import {
   createPlayer,
   updatePlayer,
   tryJump,
+  startTrick,
+  updateTrick,
   checkProximity,
   drawPlatforms,
   drawPlayer,
