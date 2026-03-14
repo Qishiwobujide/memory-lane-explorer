@@ -1789,330 +1789,392 @@ export const scenes: Record<string, Scene> = {
   },
 
   concert: (() => {
-    // Load the real photo once — used as the scene background
     const bgImg = new Image();
     bgImg.src = '/JazzClub.png';
+
+    // Pre-baked offscreen canvas for static bar elements
+    let staticCache: OffscreenCanvas | null = null;
+    let cachedW = 0, cachedH = 0;
+
+    function buildStatic(w: number, h: number) {
+      if (staticCache && cachedW === w && cachedH === h) return staticCache;
+      cachedW = w; cachedH = h;
+      staticCache = new OffscreenCanvas(w, h);
+      const c = staticCache.getContext('2d')!;
+
+      // Deep warm base
+      const base = c.createLinearGradient(0, 0, 0, h);
+      base.addColorStop(0, '#0e0604'); base.addColorStop(0.3, '#1a0a04');
+      base.addColorStop(0.7, '#281208'); base.addColorStop(1, '#140a04');
+      c.fillStyle = base; c.fillRect(0, 0, w, h);
+
+      // Exposed brick wall texture
+      c.fillStyle = 'rgba(80,30,12,0.35)';
+      for (let row = 0; row < 18; row++) {
+        const offset = (row % 2) * 22;
+        for (let col = -1; col < w / 44 + 1; col++) {
+          const bx = col * 44 + offset;
+          const by = row * 18 + 2;
+          if (by > h * 0.55) break;
+          c.fillRect(bx + 1, by + 1, 40, 14);
+        }
+      }
+      // Brick mortar lines
+      c.strokeStyle = 'rgba(20,8,4,0.4)'; c.lineWidth = 1;
+      for (let row = 0; row <= 18; row++) {
+        const by = row * 18 + 2;
+        if (by > h * 0.55) break;
+        c.beginPath(); c.moveTo(0, by); c.lineTo(w, by); c.stroke();
+        const offset = (row % 2) * 22;
+        for (let col = 0; col < w / 44 + 1; col++) {
+          const bx = col * 44 + offset;
+          c.beginPath(); c.moveTo(bx, by); c.lineTo(bx, by + 18); c.stroke();
+        }
+      }
+
+      // Warm ambient wall glow
+      const wallGlow = c.createRadialGradient(w * 0.5, h * 0.3, 0, w * 0.5, h * 0.3, w * 0.6);
+      wallGlow.addColorStop(0, 'rgba(180,80,20,0.15)');
+      wallGlow.addColorStop(0.5, 'rgba(120,40,8,0.06)');
+      wallGlow.addColorStop(1, 'transparent');
+      c.fillStyle = wallGlow; c.fillRect(0, 0, w, h);
+
+      // Stage floor (dark polished wood)
+      const floorG = c.createLinearGradient(0, h * 0.73, 0, h);
+      floorG.addColorStop(0, '#2e1408'); floorG.addColorStop(0.3, '#241006');
+      floorG.addColorStop(1, '#140804');
+      c.fillStyle = floorG; c.fillRect(0, h * 0.73, w, h * 0.27);
+      // Wood planks
+      c.strokeStyle = 'rgba(60,25,8,0.45)'; c.lineWidth = 1;
+      for (let v = 0; v < 18; v++) {
+        c.beginPath(); c.moveTo(w * v / 18, h * 0.73); c.lineTo(w * v / 18 + 14, h); c.stroke();
+      }
+      for (let p = 1; p < 7; p++) {
+        c.beginPath(); c.moveTo(0, h * 0.73 + p * (h * 0.27 / 7)); c.lineTo(w, h * 0.73 + p * (h * 0.27 / 7)); c.stroke();
+      }
+      // Stage edge highlight
+      const edgeG = c.createLinearGradient(0, h * 0.73, 0, h * 0.76);
+      edgeG.addColorStop(0, 'rgba(200,90,20,0.3)'); edgeG.addColorStop(1, 'transparent');
+      c.fillStyle = edgeG; c.fillRect(0, h * 0.73, w, h * 0.03);
+
+      // Side curtains (deep velvet red)
+      for (let side = 0; side < 2; side++) {
+        const cGrad = side === 0
+          ? c.createLinearGradient(0, 0, w * 0.08, 0)
+          : c.createLinearGradient(w * 0.92, 0, w, 0);
+        cGrad.addColorStop(side === 0 ? 0 : 1, '#2a0404');
+        cGrad.addColorStop(side === 0 ? 1 : 0, 'transparent');
+        c.fillStyle = cGrad;
+        c.fillRect(side === 0 ? 0 : w * 0.92, 0, w * 0.08, h);
+        // Curtain fold lines
+        c.strokeStyle = 'rgba(60,10,10,0.3)'; c.lineWidth = 1;
+        const startX = side === 0 ? w * 0.02 : w * 0.94;
+        for (let f = 0; f < 3; f++) {
+          c.beginPath();
+          c.moveTo(startX + f * 8, 0);
+          c.quadraticCurveTo(startX + f * 8 + 4, h * 0.5, startX + f * 8, h);
+          c.stroke();
+        }
+      }
+
+      // Bar counter
+      const barY = h * 0.56;
+      const barH = 16;
+      // Back wall bar section (darker)
+      c.fillStyle = '#120804';
+      c.fillRect(w * 0.02, barY - 65, w * 0.96, 65);
+      // Bottle shelves
+      c.fillStyle = '#3a1808';
+      c.fillRect(w * 0.04, barY - 60, w * 0.92, 3);
+      c.fillRect(w * 0.04, barY - 32, w * 0.92, 3);
+      // Mirror behind bar
+      c.fillStyle = 'rgba(40,30,25,0.6)';
+      c.fillRect(w * 0.15, barY - 58, w * 0.70, 24);
+      c.strokeStyle = 'rgba(180,140,80,0.3)'; c.lineWidth = 1;
+      c.strokeRect(w * 0.15, barY - 58, w * 0.70, 24);
+      // Bottles on shelves
+      const bottleData = [
+        { c: '#1a6b3a', h: 22 }, { c: '#8b1a1a', h: 20 }, { c: '#c8860a', h: 24 },
+        { c: '#1a4a7a', h: 18 }, { c: '#6a2a6a', h: 21 }, { c: '#1a8a6a', h: 19 },
+        { c: '#b86a08', h: 23 }, { c: '#8a1a1a', h: 20 }, { c: '#1a5a8a', h: 22 },
+        { c: '#5a1a5a', h: 18 }, { c: '#a08a10', h: 24 }, { c: '#1a6a3a', h: 20 },
+      ];
+      for (let b = 0; b < bottleData.length; b++) {
+        const bx = w * 0.06 + b * (w * 0.88 / 12);
+        const shelf = b < 6 ? barY - 60 : barY - 32;
+        const bd = bottleData[b];
+        c.fillStyle = bd.c; c.globalAlpha = 0.55;
+        // Body
+        c.beginPath();
+        c.roundRect(bx - 3, shelf - bd.h, 6, bd.h - 2, 1);
+        c.fill();
+        // Neck
+        c.fillRect(bx - 1.5, shelf - bd.h - 6, 3, 7);
+        // Label
+        c.fillStyle = 'rgba(255,255,240,0.25)';
+        c.fillRect(bx - 2.5, shelf - bd.h + 5, 5, 6);
+        c.globalAlpha = 1;
+      }
+      // Bar counter top
+      const barGrad = c.createLinearGradient(0, barY, 0, barY + barH);
+      barGrad.addColorStop(0, '#6a3210');
+      barGrad.addColorStop(0.4, '#4a2208');
+      barGrad.addColorStop(1, '#2a1004');
+      c.fillStyle = barGrad;
+      c.beginPath(); c.roundRect(w * 0.02, barY, w * 0.96, barH, 2); c.fill();
+      // Bar edge shine
+      c.strokeStyle = 'rgba(220,160,70,0.4)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(w * 0.02, barY + 1); c.lineTo(w * 0.98, barY + 1); c.stroke();
+      // Bar front panel
+      c.fillStyle = '#160a04';
+      c.fillRect(w * 0.02, barY + barH, w * 0.96, h * 0.17);
+
+      // JazzClub poster on back wall
+      const pw = Math.min(w * 0.24, 280);
+      const ph = pw * (800 / 1200);
+      const px = w * 0.5 - pw / 2;
+      const py = h * 0.06;
+      c.fillStyle = 'rgba(0,0,0,0.5)';
+      c.fillRect(px - 5, py - 5, pw + 10, ph + 10);
+      if (bgImg.complete && bgImg.naturalWidth > 0) {
+        c.drawImage(bgImg, px, py, pw, ph);
+      }
+      const fW = 5;
+      c.strokeStyle = '#9a7408'; c.lineWidth = fW;
+      c.strokeRect(px - fW / 2, py - fW / 2, pw + fW, ph + fW);
+      c.strokeStyle = '#d4a828'; c.lineWidth = 1;
+      c.strokeRect(px + 2, py + 2, pw - 4, ph - 4);
+
+      return staticCache;
+    }
+
+    // Skin tones for variety
+    const skinTones = ['#FFDAB9', '#D2A679', '#8D5524', '#C68642', '#F1C27D', '#E0AC69'];
 
     return {
     name: '🎺 Eldad & Tamir Live',
     playerStart: (w, h) => ({ x: 50, y: h * 0.7 }),
     background: (ctx, w, h, time) => {
-      // --- Deep warm jazz club base ---
-      const base = ctx.createLinearGradient(0, 0, 0, h);
-      base.addColorStop(0, '#160a04'); base.addColorStop(0.4, '#2a1206');
-      base.addColorStop(0.8, '#381a08'); base.addColorStop(1, '#1a0c04');
-      ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
+      // Draw cached static background
+      const bg = buildStatic(w, h);
+      ctx.drawImage(bg, 0, 0);
 
-      // Back wall warm amber glow
-      const wallGlow = ctx.createLinearGradient(0, 0, 0, h * 0.65);
-      wallGlow.addColorStop(0, 'rgba(200,90,10,0.22)');
-      wallGlow.addColorStop(0.6, 'rgba(160,60,8,0.1)');
-      wallGlow.addColorStop(1, 'transparent');
-      ctx.fillStyle = wallGlow; ctx.fillRect(0, 0, w, h * 0.65);
+      const barY = h * 0.56;
 
-      // --- Bar counter along the back/side ---
-      const barY = h * 0.58;
-      const barH = 18;
-      // Bar counter surface
-      const barGrad = ctx.createLinearGradient(0, barY, 0, barY + barH);
-      barGrad.addColorStop(0, '#5a2a0c');
-      barGrad.addColorStop(0.5, '#3e1a06');
-      barGrad.addColorStop(1, '#2a1004');
-      ctx.fillStyle = barGrad;
-      ctx.beginPath();
-      ctx.roundRect(w * 0.03, barY, w * 0.94, barH, 3);
-      ctx.fill();
-      // Bar edge highlight
-      ctx.strokeStyle = 'rgba(200,120,40,0.5)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(w * 0.03, barY);
-      ctx.lineTo(w * 0.97, barY);
-      ctx.stroke();
-      // Bar front panel
-      ctx.fillStyle = '#1e0c04';
-      ctx.fillRect(w * 0.03, barY + barH, w * 0.94, h * 0.15);
-      // Panel wood grain
-      ctx.strokeStyle = 'rgba(60,25,8,0.4)';
-      ctx.lineWidth = 1;
-      for (let pg = 0; pg < 6; pg++) {
-        const py2 = barY + barH + pg * (h * 0.15 / 6);
-        ctx.beginPath(); ctx.moveTo(w * 0.03, py2); ctx.lineTo(w * 0.97, py2); ctx.stroke();
-      }
-
-      // --- Bottles on shelves behind bar ---
-      const shelfY = barY - 55;
-      // Shelf
-      ctx.fillStyle = '#3a1808';
-      ctx.fillRect(w * 0.06, shelfY + 42, w * 0.88, 4);
-      ctx.fillRect(w * 0.06, shelfY + 18, w * 0.88, 4);
-      // Bottles
-      const bottleColors = ['#2ecc71','#e74c3c','#f39c12','#3498db','#9b59b6','#1abc9c','#e67e22','#c0392b','#2980b9','#8e44ad','#d4a010','#27ae60','#e74c3c','#f1c40f'];
-      for (let b = 0; b < 14; b++) {
-        const bx = w * 0.08 + b * (w * 0.84 / 14);
-        const row = b < 7 ? 0 : 1;
-        const by = row === 0 ? shelfY + 42 : shelfY + 18;
-        // Bottle body
-        ctx.fillStyle = bottleColors[b];
-        ctx.globalAlpha = 0.6;
-        ctx.fillRect(bx - 3, by - 20, 6, 18);
-        // Bottle neck
-        ctx.fillRect(bx - 1.5, by - 26, 3, 8);
-        ctx.globalAlpha = 1;
-        // Label
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillRect(bx - 2.5, by - 14, 5, 6);
-      }
-
-      // --- Bar stools ---
-      for (let s = 0; s < 10; s++) {
-        const sx = w * 0.08 + s * (w * 0.84 / 10);
-        const seatY = barY + barH + h * 0.12;
-        // Stool leg
-        ctx.strokeStyle = '#4a2a10';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(sx, seatY); ctx.lineTo(sx - 5, seatY + 18); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(sx, seatY); ctx.lineTo(sx + 5, seatY + 18); ctx.stroke();
-        // Stool seat
-        ctx.fillStyle = '#5a1a08';
-        ctx.beginPath(); ctx.ellipse(sx, seatY, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
-        // Seat cushion
-        ctx.fillStyle = '#8b2500';
-        ctx.beginPath(); ctx.ellipse(sx, seatY - 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
-      }
-
-      // --- Crowd of fans at the bar watching the performance ---
-      const fanSeeds = [
-        { pos: 0.07, hair: '#1a1a1a', shirt: '#2c3e50', lean: 0.05 },
-        { pos: 0.13, hair: '#8b4513', shirt: '#c0392b', lean: -0.08 },
-        { pos: 0.20, hair: '#daa520', shirt: '#2980b9', lean: 0.03 },
-        { pos: 0.27, hair: '#1a1a1a', shirt: '#27ae60', lean: -0.05 },
-        { pos: 0.34, hair: '#654321', shirt: '#8e44ad', lean: 0.06 },
-        { pos: 0.41, hair: '#d35400', shirt: '#34495e', lean: -0.04 },
-        { pos: 0.48, hair: '#1a1a1a', shirt: '#e74c3c', lean: 0.07 },
-        { pos: 0.55, hair: '#8b0000', shirt: '#2c3e50', lean: -0.06 },
-        { pos: 0.62, hair: '#f4a460', shirt: '#16a085', lean: 0.04 },
-        { pos: 0.69, hair: '#1a1a1a', shirt: '#d35400', lean: -0.03 },
-        { pos: 0.76, hair: '#654321', shirt: '#7f8c8d', lean: 0.05 },
-        { pos: 0.83, hair: '#daa520', shirt: '#c0392b', lean: -0.07 },
-        { pos: 0.90, hair: '#1a1a1a', shirt: '#2980b9', lean: 0.02 },
-      ];
-
-      for (let i = 0; i < fanSeeds.length; i++) {
-        const fan = fanSeeds[i];
-        const fx = w * fan.pos;
-        const fy = barY + 2; // sitting at bar level
-        const bob = Math.sin(time * 0.002 + i * 1.7) * 1.5; // gentle head bob to music
-        const sway = Math.sin(time * 0.0015 + i * 2.3) * fan.lean * 15;
-
+      // --- Spotlight beams (only 3, simpler) ---
+      for (const sx of [0.3, 0.5, 0.7]) {
+        const fl = 0.85 + Math.sin(time * 0.0012 + sx * 7) * 0.06;
         ctx.save();
-        ctx.translate(fx + sway, fy + bob);
-
-        // Body (torso visible above bar)
-        ctx.fillStyle = fan.shirt;
-        ctx.beginPath();
-        ctx.roundRect(-7, -28, 14, 20, 3);
-        ctx.fill();
-
-        // Shoulders
-        ctx.fillStyle = fan.shirt;
-        ctx.beginPath();
-        ctx.ellipse(0, -26, 10, 5, 0, Math.PI, 0);
-        ctx.fill();
-
-        // Head
-        ctx.fillStyle = '#FFDAB9';
-        ctx.beginPath();
-        ctx.arc(0, -36, 7, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Hair
-        ctx.fillStyle = fan.hair;
-        ctx.beginPath();
-        ctx.arc(0, -38, 7, Math.PI, 0);
-        ctx.fill();
-        ctx.fillRect(-7, -40, 14, 3);
-
-        // Eyes (looking toward stage center)
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath();
-        ctx.arc(-2, -36, 1, 0, Math.PI * 2);
-        ctx.arc(3, -36, 1, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Some fans holding drinks
-        if (i % 3 === 0) {
-          // Glass
-          ctx.fillStyle = 'rgba(200,160,80,0.7)';
-          ctx.fillRect(8, -22, 4, 8);
-          ctx.fillStyle = 'rgba(255,255,255,0.3)';
-          ctx.fillRect(8, -22, 4, 3);
-        }
-        if (i % 4 === 1) {
-          // Wine glass
-          ctx.strokeStyle = 'rgba(200,200,200,0.5)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(-9, -14);
-          ctx.lineTo(-9, -20);
-          ctx.stroke();
-          ctx.fillStyle = 'rgba(140,20,20,0.6)';
-          ctx.beginPath();
-          ctx.moveTo(-12, -20);
-          ctx.quadraticCurveTo(-9, -26, -6, -20);
-          ctx.closePath();
-          ctx.fill();
-        }
-
-        ctx.restore();
-      }
-
-      // --- Candle-lit tables in front of bar ---
-      for (let t = 0; t < 5; t++) {
-        const tx = w * (0.1 + t * 0.18);
-        const ty = barY + barH + h * 0.08;
-        // Small round table
-        ctx.fillStyle = 'rgba(35,15,5,0.8)';
-        ctx.beginPath(); ctx.ellipse(tx, ty, 16, 6, 0, 0, Math.PI * 2); ctx.fill();
-        // Table leg
-        ctx.fillStyle = '#2a1004';
-        ctx.fillRect(tx - 2, ty, 4, 12);
-        // Candle
-        const flicker = 0.28 + Math.sin(time * 0.003 + t * 1.5) * 0.08;
-        ctx.fillStyle = '#ecdfa0';
-        ctx.fillRect(tx - 1.5, ty - 10, 3, 7);
-        // Flame
-        const fg = ctx.createRadialGradient(tx, ty - 12, 0, tx, ty - 12, 14);
-        fg.addColorStop(0, `rgba(255,180,40,${flicker * 2})`);
-        fg.addColorStop(0.5, `rgba(220,100,15,${flicker})`);
-        fg.addColorStop(1, 'transparent');
-        ctx.fillStyle = fg;
-        ctx.beginPath(); ctx.arc(tx, ty - 12, 14, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = `rgba(255,210,60,${0.85 + Math.sin(time * 0.005 + t) * 0.15})`;
-        ctx.beginPath(); ctx.arc(tx, ty - 12, 2.5, 0, Math.PI * 2); ctx.fill();
-      }
-
-      // --- Bartender behind bar ---
-      (() => {
-        const btx = w * 0.50, bty = barY;
-        ctx.save();
-        ctx.translate(btx, bty);
-        // Body
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath(); ctx.roundRect(-8, -38, 16, 28, 3); ctx.fill();
-        // White apron
-        ctx.fillStyle = 'rgba(240,240,230,0.8)';
-        ctx.fillRect(-6, -18, 12, 16);
-        // Head
-        ctx.fillStyle = '#D2A679';
-        ctx.beginPath(); ctx.arc(0, -45, 8, 0, Math.PI * 2); ctx.fill();
-        // Hair
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath(); ctx.arc(0, -47, 8, Math.PI, 0); ctx.fill();
-        // Arm polishing glass
-        const armSwing = Math.sin(time * 0.003) * 4;
-        ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(8, -30); ctx.lineTo(16 + armSwing, -24); ctx.stroke();
-        // Glass being polished
-        ctx.fillStyle = 'rgba(200,200,200,0.4)';
-        ctx.fillRect(14 + armSwing, -28, 5, 8);
-        ctx.restore();
-      })()
-
-      // --- Overhead spot beams ---
-      for (const sx of [0.25, 0.43, 0.62, 0.80]) {
-        const flicker = 0.88 + Math.sin(time * 0.0014 + sx * 9) * 0.05;
-        const beam = ctx.createRadialGradient(w * sx, -10, 0, w * sx, -10, h * 0.82);
-        beam.addColorStop(0, `rgba(255,160,40,${0.52 * flicker})`);
-        beam.addColorStop(0.12, `rgba(220,100,20,${0.28 * flicker})`);
-        beam.addColorStop(0.38, `rgba(180,70,10,${0.10 * flicker})`);
+        ctx.globalAlpha = fl * 0.35;
+        const beam = ctx.createLinearGradient(w * sx, 0, w * sx, h * 0.75);
+        beam.addColorStop(0, 'rgba(255,170,50,0.6)');
         beam.addColorStop(1, 'transparent');
         ctx.fillStyle = beam;
-        ctx.beginPath(); ctx.moveTo(w * sx, -10);
-        ctx.lineTo(w * sx - h * 0.35, h * 0.82);
-        ctx.lineTo(w * sx + h * 0.35, h * 0.82);
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#1a1a1a'; ctx.fillRect(w * sx - 9, -2, 18, 7);
-        ctx.fillStyle = `rgba(255,180,60,${0.7 * flicker})`;
-        ctx.beginPath(); ctx.arc(w * sx, 1, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(w * sx - 8, 0);
+        ctx.lineTo(w * sx - h * 0.22, h * 0.75);
+        ctx.lineTo(w * sx + h * 0.22, h * 0.75);
+        ctx.lineTo(w * sx + 8, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
       }
 
-      // --- JAZZ neon sign ---
-      const np = 0.88 + Math.sin(time * 0.0022) * 0.12;
+      // --- JAZZ neon sign (simpler glow) ---
+      const np = 0.88 + Math.sin(time * 0.002) * 0.12;
       ctx.save();
-      ctx.shadowColor = `rgba(255,25,25,${np})`; ctx.shadowBlur = 28;
-      ctx.font = 'bold 38px "Press Start 2P", monospace';
-      ctx.fillStyle = `rgba(255,35,35,${0.9 + np * 0.1})`;
+      ctx.shadowColor = `rgba(255,20,20,${np})`;
+      ctx.shadowBlur = 22;
+      ctx.font = 'bold 34px "Press Start 2P", monospace';
+      ctx.fillStyle = `rgba(255,30,30,${0.85 + np * 0.15})`;
       const jw = ctx.measureText('JAZZ').width;
-      ctx.fillText('JAZZ', w * 0.5 - jw / 2, h * 0.17);
+      ctx.fillText('JAZZ', w * 0.5 - jw / 2, barY - 70);
       ctx.restore();
 
-      // --- JazzClub.png poster on the back wall ---
-      const pw = Math.min(w * 0.28, 320);
-      const ph = pw * (800 / 1200); // original aspect ratio
-      const px = w * 0.5 - pw / 2;
-      const py = h * 0.22;
-      // Wall shadow behind poster
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(px - 6, py - 6, pw + 12, ph + 12);
-      // Draw poster image
-      if (bgImg.complete && bgImg.naturalWidth > 0) {
-        ctx.drawImage(bgImg, px, py, pw, ph);
-      } else {
-        ctx.fillStyle = '#2a1206'; ctx.fillRect(px, py, pw, ph);
-      }
-      // Warm spotlight on poster
-      const pSpot = ctx.createRadialGradient(px + pw / 2, py, 0, px + pw / 2, py, pw * 0.9);
-      pSpot.addColorStop(0, 'rgba(255,180,60,0.18)');
-      pSpot.addColorStop(1, 'transparent');
-      ctx.fillStyle = pSpot; ctx.fillRect(px - 20, py - 20, pw + 40, ph + 40);
-      // Gold ornate frame
-      const frameW = 7;
-      ctx.strokeStyle = '#b8920a'; ctx.lineWidth = frameW;
-      ctx.strokeRect(px - frameW / 2, py - frameW / 2, pw + frameW, ph + frameW);
-      // Frame inner highlight
-      ctx.strokeStyle = '#f0c840'; ctx.lineWidth = 1.5;
-      ctx.strokeRect(px + 2, py + 2, pw - 4, ph - 4);
-      // Frame outer shadow line
-      ctx.strokeStyle = '#7a5c04'; ctx.lineWidth = 1;
-      ctx.strokeRect(px - frameW - 1, py - frameW - 1, pw + frameW * 2 + 2, ph + frameW * 2 + 2);
-      // Corner ornaments
-      for (const [cx2, cy2] of [[px - frameW, py - frameW],[px + pw + frameW, py - frameW],[px - frameW, py + ph + frameW],[px + pw + frameW, py + ph + frameW]] as [number,number][]) {
-        ctx.fillStyle = '#d4a010';
-        ctx.beginPath(); ctx.arc(cx2, cy2, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#f0c840';
-        ctx.beginPath(); ctx.arc(cx2, cy2, 2.5, 0, Math.PI * 2); ctx.fill();
+      // --- Crowd at the bar (13 patrons) ---
+      const fans = [
+        { pos: 0.06, skin: 0, hair: '#1a1a1a', shirt: '#2c3e50', type: 'short' },
+        { pos: 0.12, skin: 1, hair: '#8b4513', shirt: '#8b0000', type: 'long' },
+        { pos: 0.19, skin: 2, hair: '#1a1a1a', shirt: '#2980b9', type: 'short' },
+        { pos: 0.26, skin: 3, hair: '#654321', shirt: '#1a6b3a', type: 'bald' },
+        { pos: 0.33, skin: 4, hair: '#daa520', shirt: '#6a2a6a', type: 'long' },
+        { pos: 0.40, skin: 0, hair: '#d35400', shirt: '#34495e', type: 'short' },
+        { pos: 0.48, skin: 5, hair: '#1a1a1a', shirt: '#c0392b', type: 'short' },
+        { pos: 0.56, skin: 1, hair: '#8b0000', shirt: '#1a4a7a', type: 'bald' },
+        { pos: 0.63, skin: 2, hair: '#f4a460', shirt: '#0a6a5a', type: 'long' },
+        { pos: 0.70, skin: 3, hair: '#1a1a1a', shirt: '#b86a08', type: 'short' },
+        { pos: 0.77, skin: 4, hair: '#654321', shirt: '#5a5a5a', type: 'short' },
+        { pos: 0.84, skin: 0, hair: '#daa520', shirt: '#8b0000', type: 'long' },
+        { pos: 0.91, skin: 5, hair: '#1a1a1a', shirt: '#2c3e50', type: 'short' },
+      ];
+
+      for (let i = 0; i < fans.length; i++) {
+        const f = fans[i];
+        const fx = w * f.pos;
+        const fy = barY + 4;
+        // Subtle head bob synced to "music"
+        const bob = Math.sin(time * 0.0018 + i * 1.9) * 1.2;
+        const lean = Math.sin(time * 0.001 + i * 2.5) * 2;
+
+        ctx.save();
+        ctx.translate(fx + lean, fy);
+
+        // Shadow on bar
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath(); ctx.ellipse(0, 0, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+        // Torso
+        ctx.fillStyle = f.shirt;
+        ctx.fillRect(-8, -30, 16, 24);
+        // Shoulder shape
+        ctx.beginPath(); ctx.ellipse(0, -28, 11, 5, 0, Math.PI, 0); ctx.fill();
+
+        // Neck
+        ctx.fillStyle = skinTones[f.skin];
+        ctx.fillRect(-2, -34, 4, 5);
+
+        // Head
+        ctx.beginPath();
+        ctx.arc(0, -40 + bob, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ears
+        ctx.beginPath();
+        ctx.arc(-8, -40 + bob, 2.5, 0, Math.PI * 2);
+        ctx.arc(8, -40 + bob, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hair
+        ctx.fillStyle = f.hair;
+        if (f.type === 'short') {
+          ctx.beginPath(); ctx.arc(0, -42 + bob, 8, Math.PI, 0); ctx.fill();
+          ctx.fillRect(-8, -44 + bob, 16, 4);
+        } else if (f.type === 'long') {
+          ctx.beginPath(); ctx.arc(0, -42 + bob, 8.5, Math.PI * 0.85, Math.PI * 0.15); ctx.fill();
+          ctx.fillRect(-8, -44 + bob, 16, 4);
+          // Hair draping down sides
+          ctx.fillRect(-9, -42 + bob, 3, 10);
+          ctx.fillRect(6, -42 + bob, 3, 10);
+        }
+        // bald = no hair drawn
+
+        // Eyes (looking toward stage)
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(-3, -41 + bob, 1.8, 0, Math.PI * 2);
+        ctx.arc(3, -41 + bob, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath();
+        ctx.arc(-2.5, -41 + bob, 1, 0, Math.PI * 2);
+        ctx.arc(3.5, -41 + bob, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nose
+        ctx.fillStyle = skinTones[f.skin];
+        ctx.beginPath(); ctx.arc(0, -38 + bob, 1.2, 0, Math.PI * 2); ctx.fill();
+
+        // Mouth (slight smile)
+        ctx.strokeStyle = 'rgba(60,20,10,0.5)'; ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, -36 + bob, 2.5, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+
+        // Arms resting on bar
+        ctx.fillStyle = f.shirt;
+        ctx.fillRect(-12, -14, 5, 12);
+        ctx.fillRect(7, -14, 5, 12);
+        // Hands on bar
+        ctx.fillStyle = skinTones[f.skin];
+        ctx.beginPath();
+        ctx.arc(-10, -3, 3, 0, Math.PI * 2);
+        ctx.arc(10, -3, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Drinks (varied)
+        if (i % 3 === 0) {
+          // Whiskey glass
+          ctx.fillStyle = 'rgba(160,100,20,0.5)';
+          ctx.fillRect(12, -8, 5, 6);
+          ctx.strokeStyle = 'rgba(200,200,200,0.3)'; ctx.lineWidth = 0.8;
+          ctx.strokeRect(12, -8, 5, 6);
+        } else if (i % 3 === 1) {
+          // Wine glass
+          ctx.strokeStyle = 'rgba(200,200,200,0.4)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-12, -4); ctx.lineTo(-12, -10); ctx.stroke();
+          ctx.fillStyle = 'rgba(120,15,15,0.6)';
+          ctx.beginPath();
+          ctx.moveTo(-15, -10);
+          ctx.quadraticCurveTo(-12, -18, -9, -10);
+          ctx.closePath(); ctx.fill();
+        } else {
+          // Beer glass
+          ctx.fillStyle = 'rgba(200,170,40,0.45)';
+          ctx.fillRect(13, -10, 4, 8);
+          // Foam
+          ctx.fillStyle = 'rgba(255,255,240,0.5)';
+          ctx.fillRect(13, -11, 4, 2);
+        }
+
+        ctx.restore();
       }
 
-      // --- Side curtains ---
-      const cL = ctx.createLinearGradient(0, 0, w * 0.1, 0);
-      cL.addColorStop(0, '#3a0606'); cL.addColorStop(1, 'transparent');
-      ctx.fillStyle = cL; ctx.fillRect(0, 0, w * 0.1, h);
-      const cR = ctx.createLinearGradient(w * 0.9, 0, w, 0);
-      cR.addColorStop(0, 'transparent'); cR.addColorStop(1, '#3a0606');
-      ctx.fillStyle = cR; ctx.fillRect(w * 0.9, 0, w * 0.1, h);
-
-      // --- Stage floor (dark warm wood) ---
-      const floorG = ctx.createLinearGradient(0, h * 0.73, 0, h);
-      floorG.addColorStop(0, '#2e1408'); floorG.addColorStop(1, '#180a04');
-      ctx.fillStyle = floorG; ctx.fillRect(0, h * 0.73, w, h * 0.27);
-      ctx.strokeStyle = 'rgba(60,25,8,0.55)'; ctx.lineWidth = 1;
-      for (let p = 1; p < 7; p++) {
-        ctx.beginPath(); ctx.moveTo(0, h * 0.73 + p * (h * 0.27 / 7)); ctx.lineTo(w, h * 0.73 + p * (h * 0.27 / 7)); ctx.stroke();
+      // --- Candle glow on tables (fewer, simpler) ---
+      for (let t = 0; t < 4; t++) {
+        const tx = w * (0.15 + t * 0.2);
+        const ty = barY + 16 + h * 0.1;
+        // Candle warm glow (simple circle, no gradient per frame)
+        ctx.fillStyle = `rgba(255,170,40,${0.12 + Math.sin(time * 0.003 + t * 2) * 0.04})`;
+        ctx.beginPath(); ctx.arc(tx, ty - 8, 18, 0, Math.PI * 2); ctx.fill();
+        // Candle stick
+        ctx.fillStyle = '#ecdfa0';
+        ctx.fillRect(tx - 1, ty - 8, 2, 6);
+        // Flame
+        ctx.fillStyle = `rgba(255,200,60,${0.8 + Math.sin(time * 0.005 + t) * 0.15})`;
+        ctx.beginPath(); ctx.arc(tx, ty - 10, 2, 0, Math.PI * 2); ctx.fill();
       }
-      for (let v = 0; v < 14; v++) {
-        ctx.beginPath(); ctx.moveTo(w * v / 14, h * 0.73); ctx.lineTo(w * v / 14 + 18, h); ctx.stroke();
-      }
-      const edgeG = ctx.createLinearGradient(0, h * 0.73, 0, h * 0.76);
-      edgeG.addColorStop(0, 'rgba(220,100,20,0.35)'); edgeG.addColorStop(1, 'transparent');
-      ctx.fillStyle = edgeG; ctx.fillRect(0, h * 0.73, w, h * 0.03);
 
-      // Smoky haze
-      const haze = ctx.createRadialGradient(w * 0.5, h * 0.38, 0, w * 0.5, h * 0.38, w * 0.65);
-      haze.addColorStop(0, 'transparent');
-      haze.addColorStop(0.65, 'rgba(25,8,2,0.06)');
-      haze.addColorStop(1, 'rgba(12,4,1,0.22)');
-      ctx.fillStyle = haze; ctx.fillRect(0, 0, w, h);
+      // --- Bartender (behind bar, simple) ---
+      const btx = w * 0.50, bty = barY;
+      ctx.save(); ctx.translate(btx, bty);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-7, -35, 14, 26);
+      // White shirt/apron
+      ctx.fillStyle = 'rgba(230,225,215,0.75)';
+      ctx.fillRect(-5, -16, 10, 14);
+      // Bow tie
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-3, -22, 6, 3);
+      // Head
+      ctx.fillStyle = '#D2A679';
+      ctx.beginPath(); ctx.arc(0, -42, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath(); ctx.arc(0, -44, 7, Math.PI, 0); ctx.fill();
+      // Eyes
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath(); ctx.arc(-2, -42, 1, 0, Math.PI * 2); ctx.arc(3, -42, 1, 0, Math.PI * 2); ctx.fill();
+      // Arm polishing
+      const armS = Math.sin(time * 0.003) * 3;
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(7, -28); ctx.lineTo(14 + armS, -22); ctx.stroke();
+      ctx.fillStyle = 'rgba(200,200,200,0.35)';
+      ctx.fillRect(12 + armS, -26, 4, 7);
+      ctx.restore();
+
+      // --- Subtle smoke haze (single fill, no gradient) ---
+      ctx.fillStyle = 'rgba(18,8,4,0.12)';
+      ctx.fillRect(0, 0, w, h * 0.5);
+
+      // --- Floating music notes (fewer) ---
+      const notes = ['♩', '♪', '♫', '♬'];
+      ctx.font = '14px serif';
+      for (let n = 0; n < 5; n++) {
+        const nx = w * (0.15 + n * 0.15) + Math.sin(time * 0.0008 + n) * 12;
+        const ny = h * 0.25 - ((time * 0.02 + n * 40) % 60);
+        ctx.fillStyle = `rgba(255,200,50,${0.15 + Math.sin(time * 0.002 + n) * 0.1})`;
+        ctx.fillText(notes[n % 4], nx, ny);
+      }
     },
     platforms: (w, h) => [
       { x: w * 0.05, y: h * 0.73, width: w * 0.28, height: 20 },
