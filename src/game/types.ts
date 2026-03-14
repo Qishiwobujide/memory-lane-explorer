@@ -53,6 +53,10 @@ export interface Scene {
   item?: (w: number, h: number) => SceneItem;
   drawItem?: (ctx: CanvasRenderingContext2D, item: SceneItem) => void;
   playerStart?: (w: number, h: number) => { x: number; y: number };
+  playerPhysics?: {
+    jumpPower?: number;
+    gravity?: number;
+  };
   snowboarding?: boolean;
 }
 
