@@ -1810,264 +1810,214 @@ export const scenes: Record<string, Scene> = {
       wallGlow.addColorStop(1, 'transparent');
       ctx.fillStyle = wallGlow; ctx.fillRect(0, 0, w, h * 0.65);
 
-      // --- Audience tables with candles ---
-      for (let t = 0; t < 14; t++) {
-        const tx = w * (0.04 + (t % 7) * 0.135);
-        const ty = h * (0.56 + Math.floor(t / 7) * 0.09);
-        ctx.fillStyle = 'rgba(35,15,5,0.75)';
-        ctx.beginPath(); ctx.ellipse(tx, ty, 20, 8, 0, 0, Math.PI * 2); ctx.fill();
-        const flicker = 0.28 + Math.sin(time * 0.0028 + t * 1.3) * 0.08;
-        const cg = ctx.createRadialGradient(tx, ty - 6, 0, tx, ty - 6, 22);
-        cg.addColorStop(0, `rgba(255,180,40,${flicker * 2.2})`);
-        cg.addColorStop(0.5, `rgba(220,100,15,${flicker})`);
-        cg.addColorStop(1, 'transparent');
-        ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(tx, ty - 6, 22, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ecdfa0'; ctx.fillRect(tx - 1.5, ty - 14, 3, 9);
-        ctx.fillStyle = `rgba(255,210,60,${0.85 + Math.sin(time * 0.005 + t) * 0.15})`;
-        ctx.beginPath(); ctx.arc(tx, ty - 16, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(15,6,2,0.65)';
-        ctx.beginPath(); ctx.ellipse(tx - 9, ty - 20, 6, 9, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(tx + 11, ty - 17, 5, 7, 0.1, 0, Math.PI * 2); ctx.fill();
+      // --- Bar counter along the back/side ---
+      const barY = h * 0.58;
+      const barH = 18;
+      // Bar counter surface
+      const barGrad = ctx.createLinearGradient(0, barY, 0, barY + barH);
+      barGrad.addColorStop(0, '#5a2a0c');
+      barGrad.addColorStop(0.5, '#3e1a06');
+      barGrad.addColorStop(1, '#2a1004');
+      ctx.fillStyle = barGrad;
+      ctx.beginPath();
+      ctx.roundRect(w * 0.03, barY, w * 0.94, barH, 3);
+      ctx.fill();
+      // Bar edge highlight
+      ctx.strokeStyle = 'rgba(200,120,40,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.03, barY);
+      ctx.lineTo(w * 0.97, barY);
+      ctx.stroke();
+      // Bar front panel
+      ctx.fillStyle = '#1e0c04';
+      ctx.fillRect(w * 0.03, barY + barH, w * 0.94, h * 0.15);
+      // Panel wood grain
+      ctx.strokeStyle = 'rgba(60,25,8,0.4)';
+      ctx.lineWidth = 1;
+      for (let pg = 0; pg < 6; pg++) {
+        const py2 = barY + barH + pg * (h * 0.15 / 6);
+        ctx.beginPath(); ctx.moveTo(w * 0.03, py2); ctx.lineTo(w * 0.97, py2); ctx.stroke();
       }
 
-      // --- Floating music notes ---
-      const notes = ['♩', '♪', '♫', '♬'];
-      for (let n = 0; n < 9; n++) {
-        const nx = w * (0.1 + n * 0.09) + Math.sin(time * 0.0009 + n * 1.1) * 18;
-        const ny = h * (0.30 + Math.sin(time * 0.0007 + n * 0.8) * 0.07) - (((time * 0.025 + n * 30) % 80));
-        const na = 0.25 + Math.sin(time * 0.0018 + n) * 0.15;
+      // --- Bottles on shelves behind bar ---
+      const shelfY = barY - 55;
+      // Shelf
+      ctx.fillStyle = '#3a1808';
+      ctx.fillRect(w * 0.06, shelfY + 42, w * 0.88, 4);
+      ctx.fillRect(w * 0.06, shelfY + 18, w * 0.88, 4);
+      // Bottles
+      const bottleColors = ['#2ecc71','#e74c3c','#f39c12','#3498db','#9b59b6','#1abc9c','#e67e22','#c0392b','#2980b9','#8e44ad','#d4a010','#27ae60','#e74c3c','#f1c40f'];
+      for (let b = 0; b < 14; b++) {
+        const bx = w * 0.08 + b * (w * 0.84 / 14);
+        const row = b < 7 ? 0 : 1;
+        const by = row === 0 ? shelfY + 42 : shelfY + 18;
+        // Bottle body
+        ctx.fillStyle = bottleColors[b];
+        ctx.globalAlpha = 0.6;
+        ctx.fillRect(bx - 3, by - 20, 6, 18);
+        // Bottle neck
+        ctx.fillRect(bx - 1.5, by - 26, 3, 8);
+        ctx.globalAlpha = 1;
+        // Label
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(bx - 2.5, by - 14, 5, 6);
+      }
+
+      // --- Bar stools ---
+      for (let s = 0; s < 10; s++) {
+        const sx = w * 0.08 + s * (w * 0.84 / 10);
+        const seatY = barY + barH + h * 0.12;
+        // Stool leg
+        ctx.strokeStyle = '#4a2a10';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(sx, seatY); ctx.lineTo(sx - 5, seatY + 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx, seatY); ctx.lineTo(sx + 5, seatY + 18); ctx.stroke();
+        // Stool seat
+        ctx.fillStyle = '#5a1a08';
+        ctx.beginPath(); ctx.ellipse(sx, seatY, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+        // Seat cushion
+        ctx.fillStyle = '#8b2500';
+        ctx.beginPath(); ctx.ellipse(sx, seatY - 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // --- Crowd of fans at the bar watching the performance ---
+      const fanSeeds = [
+        { pos: 0.07, hair: '#1a1a1a', shirt: '#2c3e50', lean: 0.05 },
+        { pos: 0.13, hair: '#8b4513', shirt: '#c0392b', lean: -0.08 },
+        { pos: 0.20, hair: '#daa520', shirt: '#2980b9', lean: 0.03 },
+        { pos: 0.27, hair: '#1a1a1a', shirt: '#27ae60', lean: -0.05 },
+        { pos: 0.34, hair: '#654321', shirt: '#8e44ad', lean: 0.06 },
+        { pos: 0.41, hair: '#d35400', shirt: '#34495e', lean: -0.04 },
+        { pos: 0.48, hair: '#1a1a1a', shirt: '#e74c3c', lean: 0.07 },
+        { pos: 0.55, hair: '#8b0000', shirt: '#2c3e50', lean: -0.06 },
+        { pos: 0.62, hair: '#f4a460', shirt: '#16a085', lean: 0.04 },
+        { pos: 0.69, hair: '#1a1a1a', shirt: '#d35400', lean: -0.03 },
+        { pos: 0.76, hair: '#654321', shirt: '#7f8c8d', lean: 0.05 },
+        { pos: 0.83, hair: '#daa520', shirt: '#c0392b', lean: -0.07 },
+        { pos: 0.90, hair: '#1a1a1a', shirt: '#2980b9', lean: 0.02 },
+      ];
+
+      for (let i = 0; i < fanSeeds.length; i++) {
+        const fan = fanSeeds[i];
+        const fx = w * fan.pos;
+        const fy = barY + 2; // sitting at bar level
+        const bob = Math.sin(time * 0.002 + i * 1.7) * 1.5; // gentle head bob to music
+        const sway = Math.sin(time * 0.0015 + i * 2.3) * fan.lean * 15;
+
         ctx.save();
-        ctx.fillStyle = `rgba(255,210,60,${na})`;
-        ctx.font = `${13 + (n % 3) * 5}px serif`;
-        ctx.fillText(notes[n % 4], nx, ny);
-        ctx.restore();
-      }
+        ctx.translate(fx + sway, fy + bob);
 
-      // --- Instruments on/near stage ---
-      // Saxophone on a stand, left of stage
-      (() => {
-        const sx = w * 0.08, sy = h * 0.73;
-        ctx.save(); ctx.translate(sx, sy);
-        // Stand legs
-        ctx.strokeStyle = '#4a3010'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-10, 18); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(10, 18); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 18); ctx.stroke();
-        // Sax body (gold, leaning)
-        ctx.strokeStyle = '#c07808'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+        // Body (torso visible above bar)
+        ctx.fillStyle = fan.shirt;
         ctx.beginPath();
-        ctx.moveTo(4, -10);
-        ctx.quadraticCurveTo(-8, -28, -10, -48);
-        ctx.quadraticCurveTo(-12, -65, -4, -70);
-        ctx.stroke();
-        ctx.strokeStyle = '#e0a020'; ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(4, -10);
-        ctx.quadraticCurveTo(-8, -28, -10, -48);
-        ctx.quadraticCurveTo(-12, -65, -4, -70);
-        ctx.stroke();
-        // Bell
-        ctx.fillStyle = '#c07808';
-        ctx.beginPath(); ctx.ellipse(8, -4, 9, 6, 0.3, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#e8b030'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.ellipse(8, -4, 9, 6, 0.3, 0, Math.PI * 2); ctx.stroke();
-        // Keys
-        ctx.fillStyle = '#3a2810';
-        for (let k = 0; k < 5; k++) {
-          ctx.beginPath(); ctx.arc(-5 - k, -22 - k * 9, 3, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = '#c07808'; ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.arc(-5 - k, -22 - k * 9, 3, 0, Math.PI * 2); ctx.stroke();
-        }
-        ctx.restore();
-      })();
-
-      // Trumpet lying on right side of stage edge
-      (() => {
-        const tx2 = w * 0.88, ty2 = h * 0.73 - 8;
-        ctx.save(); ctx.translate(tx2, ty2); ctx.rotate(-0.15);
-        ctx.fillStyle = '#c8880a';
-        ctx.fillRect(-28, -5, 42, 8); // main tube
-        // Valves
-        ctx.fillStyle = '#a06808';
-        for (let v = 0; v < 3; v++) { ctx.fillRect(-10 + v * 9, -11, 7, 8); }
-        // Bell
-        ctx.beginPath();
-        ctx.moveTo(14, -2); ctx.bezierCurveTo(22, -4, 32, -8, 34, -14);
-        ctx.bezierCurveTo(36, -20, 28, -24, 20, -18); ctx.bezierCurveTo(14, -14, 13, -6, 14, -2);
+        ctx.roundRect(-7, -28, 14, 20, 3);
         ctx.fill();
-        ctx.strokeStyle = '#e8b030'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.ellipse(28, -16, 7, 5, -0.4, 0, Math.PI * 2); ctx.stroke();
-        // Mouthpiece
-        ctx.fillStyle = '#e0a828'; ctx.fillRect(-30, -3, 5, 5);
-        ctx.restore();
-      })();
 
-      // --- Pikachu on platform 1, shredding guitar ---
-      (() => {
-        // Centre of platform 1: x = w*0.05 + w*0.28/2, y = h*0.73 (platform top)
-        const pkx = w * 0.05 + w * 0.14, pky = h * 0.73;
-        ctx.save(); ctx.translate(pkx, pky);
-
-        // === 1. GUITAR NECK — drawn behind Pikachu ===
-        ctx.save(); ctx.rotate(-0.32);
-        ctx.fillStyle = '#6a3a10'; ctx.fillRect(-5, -110, 10, 82);
-        // Frets
-        ctx.strokeStyle = '#d4b060'; ctx.lineWidth = 1.5;
-        for (let f = 0; f < 8; f++) { ctx.beginPath(); ctx.moveTo(-5, -106 + f * 10); ctx.lineTo(5, -106 + f * 10); ctx.stroke(); }
-        // Strings
-        ctx.strokeStyle = 'rgba(230,230,210,0.8)'; ctx.lineWidth = 1;
-        for (let s = -3; s <= 3; s += 2) { ctx.beginPath(); ctx.moveTo(s, -106); ctx.lineTo(s, -30); ctx.stroke(); }
-        // Headstock
-        ctx.fillStyle = '#3a1e04'; ctx.fillRect(-7, -118, 14, 12);
-        ctx.fillStyle = '#d4a818';
-        for (let p = 0; p < 3; p++) { ctx.beginPath(); ctx.arc(-10, -115 + p * 5, 3, 0, Math.PI * 2); ctx.fill(); }
-        for (let p = 0; p < 3; p++) { ctx.beginPath(); ctx.arc(10, -115 + p * 5, 3, 0, Math.PI * 2); ctx.fill(); }
-        ctx.restore();
-
-        // === 2. PIKACHU ===
-        // Lightning bolt tail
-        ctx.fillStyle = '#f8c800';
+        // Shoulders
+        ctx.fillStyle = fan.shirt;
         ctx.beginPath();
-        ctx.moveTo(-20, -8); ctx.lineTo(-30, -24); ctx.lineTo(-22, -24);
-        ctx.lineTo(-34, -42); ctx.lineTo(-24, -40); ctx.lineTo(-32, -58);
-        ctx.lineTo(-16, -40); ctx.lineTo(-24, -42); ctx.lineTo(-14, -24);
-        ctx.lineTo(-20, -24); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#c89000'; ctx.lineWidth = 1; ctx.stroke();
-
-        // Body
-        ctx.fillStyle = '#f8d030';
-        ctx.beginPath(); ctx.ellipse(0, -16, 19, 17, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fce878';
-        ctx.beginPath(); ctx.ellipse(0, -12, 12, 11, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#c8780a';
-        ctx.fillRect(-4, -32, 5, 8); ctx.fillRect(5, -31, 4, 7);
+        ctx.ellipse(0, -26, 10, 5, 0, Math.PI, 0);
+        ctx.fill();
 
         // Head
-        ctx.fillStyle = '#f8d030';
-        ctx.beginPath(); ctx.arc(0, -38, 18, 0, Math.PI * 2); ctx.fill();
-
-        // Ears
-        ctx.fillStyle = '#f8d030';
-        ctx.beginPath(); ctx.moveTo(-11, -50); ctx.lineTo(-17, -76); ctx.lineTo(-5, -52); ctx.fill();
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath(); ctx.moveTo(-12, -52); ctx.lineTo(-16, -72); ctx.lineTo(-7, -54); ctx.fill();
-        ctx.fillStyle = '#f8d030';
-        ctx.beginPath(); ctx.moveTo(9, -50); ctx.lineTo(16, -76); ctx.lineTo(4, -52); ctx.fill();
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath(); ctx.moveTo(10, -52); ctx.lineTo(15, -72); ctx.lineTo(5, -54); ctx.fill();
-
-        // Eyes
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath(); ctx.ellipse(-5, -41, 4, 5, -0.1, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(5, -41, 4, 5, 0.1, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(-4, -43, 1.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(6, -43, 1.5, 0, Math.PI * 2); ctx.fill();
-
-        // Cheeks
-        ctx.fillStyle = 'rgba(255,60,60,0.78)';
-        ctx.beginPath(); ctx.ellipse(-13, -34, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(13, -34, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,220,50,0.55)';
-        ctx.beginPath(); ctx.arc(-13, -34, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(13, -34, 2, 0, Math.PI * 2); ctx.fill();
-
-        // Nose & mouth
-        ctx.fillStyle = '#a06030';
-        ctx.beginPath(); ctx.ellipse(0, -32, 2.5, 1.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#1a0a06';
-        ctx.beginPath(); ctx.ellipse(0, -27, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#e04030';
-        ctx.beginPath(); ctx.ellipse(0, -27, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
-
-        // Left arm (reaching up-left along neck)
-        ctx.fillStyle = '#f8d030';
+        ctx.fillStyle = '#FFDAB9';
         ctx.beginPath();
-        ctx.moveTo(-14, -22); ctx.bezierCurveTo(-30, -34, -34, -52, -28, -62);
-        ctx.lineTo(-22, -58); ctx.bezierCurveTo(-28, -50, -24, -34, -10, -22);
+        ctx.arc(0, -36, 7, 0, Math.PI * 2);
         ctx.fill();
-        ctx.beginPath(); ctx.ellipse(-26, -60, 7, 5, -0.5, 0, Math.PI * 2); ctx.fill();
 
-        // Right arm (strumming over guitar body)
-        ctx.fillStyle = '#f8d030';
+        // Hair
+        ctx.fillStyle = fan.hair;
         ctx.beginPath();
-        ctx.moveTo(14, -20); ctx.bezierCurveTo(32, -14, 38, -26, 32, -36);
-        ctx.lineTo(25, -33); ctx.bezierCurveTo(30, -25, 25, -16, 10, -20);
+        ctx.arc(0, -38, 7, Math.PI, 0);
         ctx.fill();
-        ctx.beginPath(); ctx.ellipse(32, -34, 7, 5, 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(-7, -40, 14, 3);
 
-        // Legs / feet
-        ctx.fillStyle = '#f8d030';
-        ctx.beginPath(); ctx.ellipse(-9, -2, 8, 6, 0.2, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(9, -2, 8, 6, -0.2, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#c8780a';
-        ctx.beginPath(); ctx.ellipse(-10, 4, 9, 4, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(10, 4, 9, 4, 0, 0, Math.PI * 2); ctx.fill();
+        // Eyes (looking toward stage center)
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath();
+        ctx.arc(-2, -36, 1, 0, Math.PI * 2);
+        ctx.arc(3, -36, 1, 0, Math.PI * 2);
+        ctx.fill();
 
-        // === 3. GUITAR BODY — drawn on top so it's fully visible ===
-        const gbx = 22, gby = -24;
-        const sb = ctx.createRadialGradient(gbx, gby, 3, gbx, gby, 36);
-        sb.addColorStop(0,    '#fce050');
-        sb.addColorStop(0.3,  '#e86a0a');
-        sb.addColorStop(0.65, '#921a04');
-        sb.addColorStop(1,    '#3e0a02');
-        // Drop shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.beginPath(); ctx.ellipse(gbx + 3, gby + 3, 28, 22, 0.15, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(gbx + 3, gby + 26, 32, 24, 0.1, 0, Math.PI * 2); ctx.fill();
-        // Upper bout
-        ctx.fillStyle = sb;
-        ctx.beginPath(); ctx.ellipse(gbx, gby, 28, 22, 0.15, 0, Math.PI * 2); ctx.fill();
-        // Lower bout (larger)
-        ctx.beginPath(); ctx.ellipse(gbx, gby + 26, 32, 24, 0.1, 0, Math.PI * 2); ctx.fill();
-        // Waist notch
-        ctx.fillStyle = '#1a0a04';
-        ctx.beginPath(); ctx.ellipse(gbx - 4, gby + 12, 10, 8, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = sb;
-        ctx.beginPath(); ctx.ellipse(gbx - 10, gby + 2, 16, 13, 0.25, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(gbx - 8, gby + 24, 18, 16, -0.1, 0, Math.PI * 2); ctx.fill();
-        // Sound hole
-        ctx.fillStyle = '#1a0a04';
-        ctx.beginPath(); ctx.arc(gbx, gby + 12, 10, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#d4a828'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(gbx, gby + 12, 10, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = 'rgba(220,180,60,0.4)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(gbx, gby + 12, 13, 0, Math.PI * 2); ctx.stroke();
-        // Cream body binding
-        ctx.strokeStyle = 'rgba(245,230,170,0.65)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.ellipse(gbx, gby, 28, 22, 0.15, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(gbx, gby + 26, 32, 24, 0.1, 0, Math.PI * 2); ctx.stroke();
-        // Pick guard
-        ctx.fillStyle = 'rgba(16,6,2,0.65)';
-        ctx.beginPath(); ctx.ellipse(gbx + 12, gby + 18, 9, 13, 0.35, 0, Math.PI * 2); ctx.fill();
-        // Bridge
-        ctx.fillStyle = '#6a3808'; ctx.fillRect(gbx - 12, gby + 34, 22, 5);
-        ctx.fillStyle = '#c8a030'; ctx.fillRect(gbx - 10, gby + 32, 18, 3);
-        // Strings (6 strings across body)
-        ctx.strokeStyle = 'rgba(230,225,195,0.7)'; ctx.lineWidth = 0.9;
-        for (let s = 0; s < 6; s++) {
-          ctx.beginPath();
-          ctx.moveTo(gbx - 9 + s * 4, gby + 35);
-          ctx.lineTo(gbx - 11 + s * 4, gby - 5);
-          ctx.stroke();
+        // Some fans holding drinks
+        if (i % 3 === 0) {
+          // Glass
+          ctx.fillStyle = 'rgba(200,160,80,0.7)';
+          ctx.fillRect(8, -22, 4, 8);
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.fillRect(8, -22, 4, 3);
         }
-        // Strap pin
-        ctx.fillStyle = '#c8a030';
-        ctx.beginPath(); ctx.arc(gbx, gby + 48, 3, 0, Math.PI * 2); ctx.fill();
-
-        // Red pick in strumming paw
-        ctx.fillStyle = '#ff3333';
-        ctx.beginPath(); ctx.moveTo(33, -38); ctx.lineTo(40, -30); ctx.lineTo(29, -29); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#cc0000'; ctx.lineWidth = 0.8; ctx.stroke();
-
-        // Electric sparks
-        const sp = Math.sin(time * 0.006) * 0.5 + 0.5;
-        ctx.strokeStyle = `rgba(255,240,60,${sp * 0.9})`; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(-18, -34); ctx.lineTo(-24, -30); ctx.lineTo(-20, -28); ctx.lineTo(-26, -24); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(18, -34); ctx.lineTo(24, -30); ctx.lineTo(20, -28); ctx.lineTo(26, -24); ctx.stroke();
+        if (i % 4 === 1) {
+          // Wine glass
+          ctx.strokeStyle = 'rgba(200,200,200,0.5)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-9, -14);
+          ctx.lineTo(-9, -20);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(140,20,20,0.6)';
+          ctx.beginPath();
+          ctx.moveTo(-12, -20);
+          ctx.quadraticCurveTo(-9, -26, -6, -20);
+          ctx.closePath();
+          ctx.fill();
+        }
 
         ctx.restore();
-      })();
+      }
+
+      // --- Candle-lit tables in front of bar ---
+      for (let t = 0; t < 5; t++) {
+        const tx = w * (0.1 + t * 0.18);
+        const ty = barY + barH + h * 0.08;
+        // Small round table
+        ctx.fillStyle = 'rgba(35,15,5,0.8)';
+        ctx.beginPath(); ctx.ellipse(tx, ty, 16, 6, 0, 0, Math.PI * 2); ctx.fill();
+        // Table leg
+        ctx.fillStyle = '#2a1004';
+        ctx.fillRect(tx - 2, ty, 4, 12);
+        // Candle
+        const flicker = 0.28 + Math.sin(time * 0.003 + t * 1.5) * 0.08;
+        ctx.fillStyle = '#ecdfa0';
+        ctx.fillRect(tx - 1.5, ty - 10, 3, 7);
+        // Flame
+        const fg = ctx.createRadialGradient(tx, ty - 12, 0, tx, ty - 12, 14);
+        fg.addColorStop(0, `rgba(255,180,40,${flicker * 2})`);
+        fg.addColorStop(0.5, `rgba(220,100,15,${flicker})`);
+        fg.addColorStop(1, 'transparent');
+        ctx.fillStyle = fg;
+        ctx.beginPath(); ctx.arc(tx, ty - 12, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,210,60,${0.85 + Math.sin(time * 0.005 + t) * 0.15})`;
+        ctx.beginPath(); ctx.arc(tx, ty - 12, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // --- Bartender behind bar ---
+      (() => {
+        const btx = w * 0.50, bty = barY;
+        ctx.save();
+        ctx.translate(btx, bty);
+        // Body
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath(); ctx.roundRect(-8, -38, 16, 28, 3); ctx.fill();
+        // White apron
+        ctx.fillStyle = 'rgba(240,240,230,0.8)';
+        ctx.fillRect(-6, -18, 12, 16);
+        // Head
+        ctx.fillStyle = '#D2A679';
+        ctx.beginPath(); ctx.arc(0, -45, 8, 0, Math.PI * 2); ctx.fill();
+        // Hair
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath(); ctx.arc(0, -47, 8, Math.PI, 0); ctx.fill();
+        // Arm polishing glass
+        const armSwing = Math.sin(time * 0.003) * 4;
+        ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(8, -30); ctx.lineTo(16 + armSwing, -24); ctx.stroke();
+        // Glass being polished
+        ctx.fillStyle = 'rgba(200,200,200,0.4)';
+        ctx.fillRect(14 + armSwing, -28, 5, 8);
+        ctx.restore();
+      })()
 
       // --- Overhead spot beams ---
       for (const sx of [0.25, 0.43, 0.62, 0.80]) {
