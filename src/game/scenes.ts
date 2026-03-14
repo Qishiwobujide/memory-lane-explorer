@@ -1877,6 +1877,50 @@ export const scenes: Record<string, Scene> = {
         }
       }
 
+      // ── Overhead lighting rig ────────────────────────────────────
+      {
+        const rigY = h * 0.04;
+        // Ceiling chain mounts
+        c.strokeStyle = '#555'; c.lineWidth = 1.5;
+        for (const mx of [w*0.25, w*0.5, w*0.75]) {
+          c.beginPath(); c.moveTo(mx, 0); c.lineTo(mx, rigY); c.stroke();
+        }
+        // Truss beam (dark metallic gradient)
+        const trussG = c.createLinearGradient(w*0.03, rigY, w*0.03, rigY + 8);
+        trussG.addColorStop(0, '#4a4a4a'); trussG.addColorStop(1, '#2a2a2a');
+        c.fillStyle = trussG;
+        c.fillRect(w*0.03, rigY, w*0.94, 8);
+        // Diagonal cross-bracing
+        c.strokeStyle = '#555'; c.lineWidth = 0.8;
+        const segW = w * 0.94 / 12;
+        for (let i = 0; i < 12; i++) {
+          const x1 = w*0.03 + i * segW;
+          c.beginPath(); c.moveTo(x1, rigY); c.lineTo(x1 + segW, rigY + 8); c.stroke();
+          c.beginPath(); c.moveTo(x1, rigY + 8); c.lineTo(x1 + segW, rigY); c.stroke();
+        }
+        // PAR can lights (alternating red / amber)
+        const parX = [w*0.12, w*0.28, w*0.50, w*0.72, w*0.88];
+        const parCol = ['#8b0000','#c07808','#8b0000','#c07808','#8b0000'];
+        for (let i = 0; i < parX.length; i++) {
+          const lx = parX[i], ly = rigY + 8;
+          // Housing box
+          c.fillStyle = '#2a2a2a';
+          c.fillRect(lx - 6, ly, 12, 10);
+          // Coloured lens
+          c.fillStyle = parCol[i]; c.globalAlpha = 0.8;
+          c.beginPath(); c.ellipse(lx, ly + 10, 6, 3.5, 0, 0, Math.PI * 2); c.fill();
+          c.globalAlpha = 1;
+          // Downward beam cone
+          const bG = c.createLinearGradient(lx, ly + 10, lx, ly + 90);
+          bG.addColorStop(0, parCol[i] + '55'); bG.addColorStop(1, 'transparent');
+          c.fillStyle = bG;
+          c.beginPath();
+          c.moveTo(lx - 6, ly + 10); c.lineTo(lx + 6, ly + 10);
+          c.lineTo(lx + 18, ly + 90); c.lineTo(lx - 18, ly + 90);
+          c.closePath(); c.fill();
+        }
+      }
+
       // Bar counter
       const barY = h * 0.56;
       const barH = 16;
@@ -2019,38 +2063,6 @@ export const scenes: Record<string, Scene> = {
         c.restore();
       })();
 
-      // --- Saxophone on stand (left side of stage) ---
-      (() => {
-        const sx = w * 0.08, sy = h * 0.73;
-        c.save(); c.translate(sx, sy);
-        // Stand tripod
-        c.strokeStyle = '#3a3a3a'; c.lineWidth = 2;
-        c.beginPath(); c.moveTo(0, 0); c.lineTo(-12, 20); c.stroke();
-        c.beginPath(); c.moveTo(0, 0); c.lineTo(12, 20); c.stroke();
-        c.beginPath(); c.moveTo(0, 0); c.lineTo(0, 20); c.stroke();
-        // Sax body
-        c.strokeStyle = '#c07808'; c.lineWidth = 7; c.lineCap = 'round';
-        c.beginPath();
-        c.moveTo(3, -8);
-        c.quadraticCurveTo(-6, -28, -8, -48);
-        c.quadraticCurveTo(-10, -60, -3, -65);
-        c.stroke();
-        c.strokeStyle = '#e0a020'; c.lineWidth = 4;
-        c.beginPath();
-        c.moveTo(3, -8);
-        c.quadraticCurveTo(-6, -28, -8, -48);
-        c.quadraticCurveTo(-10, -60, -3, -65);
-        c.stroke();
-        // Bell
-        c.fillStyle = '#c07808';
-        c.beginPath(); c.ellipse(7, -2, 8, 5, 0.3, 0, Math.PI * 2); c.fill();
-        c.strokeStyle = '#e8b030'; c.lineWidth = 1;
-        c.beginPath(); c.ellipse(7, -2, 8, 5, 0.3, 0, Math.PI * 2); c.stroke();
-        // Keys
-        c.fillStyle = '#e0a020';
-        for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(-4 - k * 0.5, -20 - k * 10, 2.5, 0, Math.PI * 2); c.fill(); }
-        c.restore();
-      })();
 
       // --- Upright bass (right side of stage) ---
       (() => {
@@ -2314,6 +2326,41 @@ export const scenes: Record<string, Scene> = {
       ctx.fillRect(12 + armS, -26, 4, 7);
       ctx.restore();
 
+      // --- "The best Show in Town!" wall sign ---
+      ctx.save();
+      const signX = w * 0.06, signY = h * 0.18, signW = 270, signH = 54;
+      const woodG = ctx.createLinearGradient(signX, signY, signX, signY + signH);
+      woodG.addColorStop(0, '#7a4a12'); woodG.addColorStop(1, '#4a2808');
+      ctx.fillStyle = woodG;
+      ctx.beginPath(); ctx.roundRect(signX, signY, signW, signH, 5); ctx.fill();
+      // Wood grain lines
+      ctx.strokeStyle = 'rgba(30,10,2,0.3)'; ctx.lineWidth = 1;
+      for (let g = 0; g < 4; g++) {
+        ctx.beginPath(); ctx.moveTo(signX, signY + 10 + g * 12); ctx.lineTo(signX + signW, signY + 10 + g * 12); ctx.stroke();
+      }
+      // Border
+      ctx.strokeStyle = '#2a1204'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.roundRect(signX, signY, signW, signH, 5); ctx.stroke();
+      // Inner border
+      ctx.strokeStyle = 'rgba(200,140,40,0.4)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(signX + 5, signY + 5, signW - 10, signH - 10, 3); ctx.stroke();
+      // Nails
+      ctx.fillStyle = '#c8a040';
+      for (const [nx, ny] of [[signX + 9, signY + 9], [signX + signW - 9, signY + 9], [signX + 9, signY + signH - 9], [signX + signW - 9, signY + signH - 9]] as [number, number][]) {
+        ctx.beginPath(); ctx.arc(nx, ny, 3, 0, Math.PI * 2); ctx.fill();
+      }
+      // Text
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 6;
+      ctx.fillStyle = '#ffe880';
+      ctx.fillText('The best Show in Town!', signX + signW / 2, signY + 23);
+      ctx.fillStyle = 'rgba(255,220,100,0.6)';
+      ctx.font = '9px "Press Start 2P", monospace';
+      ctx.fillText('~ Live Jazz ~', signX + signW / 2, signY + 41);
+      ctx.textAlign = 'left'; ctx.shadowBlur = 0;
+      ctx.restore();
+
       // --- Subtle smoke haze (single fill, no gradient) ---
       ctx.fillStyle = 'rgba(18,8,4,0.12)';
       ctx.fillRect(0, 0, w, h * 0.5);
@@ -2329,9 +2376,9 @@ export const scenes: Record<string, Scene> = {
       }
     },
     platforms: (w, h) => [
-      { x: w * 0.05, y: h * 0.73, width: w * 0.28, height: 20 },
-      { x: w * 0.38, y: h * 0.55, width: w * 0.24, height: 20 },
-      { x: w * 0.67, y: h * 0.73, width: w * 0.28, height: 20 },
+      { x: w * 0.05, y: h * 0.8, width: w * 0.28, height: 20 },
+      { x: w * 0.38, y: h * 0.8 - 65, width: w * 0.24, height: 20 },
+      { x: w * 0.67, y: h * 0.8, width: w * 0.28, height: 20 },
     ],
     drawPlatforms: (ctx, platforms) => {
       for (const p of platforms) {
@@ -2350,10 +2397,340 @@ export const scenes: Record<string, Scene> = {
           ctx.stroke();
         }
       }
+
+      // ── Stage monitor wedges (one per platform, drawn first so piano layers on top) ──
+      for (const p of platforms) {
+        const mx = p.x + p.width * 0.72;
+        const my = p.y;
+        // Wedge trapezoid: rear 18px tall, front 8px tall, 32px wide
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath();
+        ctx.moveTo(mx,      my - 18);  // rear top-left
+        ctx.lineTo(mx + 32, my -  8);  // front top-right
+        ctx.lineTo(mx + 32, my);       // front bottom-right
+        ctx.lineTo(mx,      my);       // rear bottom-left
+        ctx.closePath(); ctx.fill();
+        // Grille cloth lines on angled face
+        ctx.strokeStyle = 'rgba(80,80,80,0.5)'; ctx.lineWidth = 1;
+        for (let g = 0; g < 3; g++) {
+          const gy = my - 6 - g * 4;
+          ctx.beginPath(); ctx.moveTo(mx + 2, gy); ctx.lineTo(mx + 30, gy + (18-8)*g/3 + 2); ctx.stroke();
+        }
+        // Speaker cone on face
+        ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(mx + 18, my - 10, 6, 4, -0.3, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.ellipse(mx + 18, my - 10, 2, 1.5, -0.3, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // --- Upright piano on the first (leftmost) platform ---
+      const p0 = platforms[0];
+      const pW = 90, pHt = 112;
+      const pX = p0.x + 14;
+      const pY = p0.y - pHt;
+
+      ctx.save();
+
+      // ── Lacquered black cabinet ──────────────────────────────────
+      const lacquer = ctx.createLinearGradient(pX, pY, pX + pW, pY);
+      lacquer.addColorStop(0,   '#1c1c1c');
+      lacquer.addColorStop(0.08,'#2e2e2e');
+      lacquer.addColorStop(0.5, '#111111');
+      lacquer.addColorStop(0.92,'#2a2a2a');
+      lacquer.addColorStop(1,   '#111111');
+      ctx.fillStyle = lacquer;
+      ctx.fillRect(pX, pY, pW, pHt);
+
+      // Top cap (rounded)
+      ctx.fillStyle = '#222';
+      ctx.fillRect(pX, pY, pW, 5);
+
+      // ── Music desk (upper panel) ─────────────────────────────────
+      ctx.fillStyle = '#181818';
+      ctx.fillRect(pX + 6, pY + 5, pW - 12, 22);
+      // Sheet of music on desk
+      ctx.fillStyle = '#ece8dc';
+      ctx.fillRect(pX + 10, pY + 7, pW - 20, 18);
+      // Staff lines
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 0.8;
+      for (let l = 0; l < 5; l++) {
+        ctx.beginPath(); ctx.moveTo(pX + 12, pY + 9 + l * 3); ctx.lineTo(pX + pW - 12, pY + 9 + l * 3); ctx.stroke();
+      }
+      // A few notes on the sheet
+      ctx.fillStyle = '#222';
+      ctx.font = '7px serif';
+      for (const [nx, ny] of [[pX+14,pY+13],[pX+22,pY+11],[pX+30,pY+14],[pX+38,pY+12]] as [number,number][]) {
+        ctx.beginPath(); ctx.ellipse(nx, ny, 2.5, 2, -0.4, 0, Math.PI*2); ctx.fill();
+        ctx.fillRect(nx + 2, ny - 7, 1, 7);
+      }
+
+      // ── Upper case (between desk and keys) ──────────────────────
+      ctx.fillStyle = '#151515';
+      ctx.fillRect(pX + 4, pY + 27, pW - 8, 8);
+
+      // ── Fallboard + keys area ────────────────────────────────────
+      // Key slip (dark frame around keys)
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(pX + 4, pY + 35, pW - 8, 42);
+
+      // White keys — 8 keys (one octave + C)
+      const nWhite = 8;
+      const kSlotW = (pW - 12) / nWhite;
+      const kW = kSlotW - 1.5, kH = 36;
+      const kStartX = pX + 6, kStartY = pY + 37;
+      for (let k = 0; k < nWhite; k++) {
+        const kx = kStartX + k * kSlotW;
+        // Ivory gradient
+        const ivg = ctx.createLinearGradient(kx, kStartY, kx + kW, kStartY);
+        ivg.addColorStop(0, '#e8e4d8'); ivg.addColorStop(1, '#f5f2ec');
+        ctx.fillStyle = ivg;
+        ctx.fillRect(kx, kStartY, kW, kH);
+        // Bottom rounded tip
+        ctx.fillStyle = '#dedad0';
+        ctx.fillRect(kx, kStartY + kH - 4, kW, 4);
+        // Dividing line
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.8;
+        ctx.strokeRect(kx, kStartY, kW, kH);
+      }
+      // Black keys — correct piano positions: after keys 0,1,3,4,5 (C#,D#,F#,G#,A#)
+      const bkOffsets = [0, 1, 3, 4, 5];
+      const bkW = kSlotW * 0.58, bkH = 22;
+      for (const bo of bkOffsets) {
+        const bkX = kStartX + bo * kSlotW + kSlotW - bkW / 2 - 0.5;
+        const bkg = ctx.createLinearGradient(bkX, kStartY, bkX + bkW, kStartY);
+        bkg.addColorStop(0, '#1a1a1a'); bkg.addColorStop(0.4,'#0a0a0a'); bkg.addColorStop(1,'#252525');
+        ctx.fillStyle = bkg;
+        ctx.fillRect(bkX, kStartY, bkW, bkH);
+        // Shine on black key
+        ctx.fillStyle = 'rgba(255,255,255,0.07)';
+        ctx.fillRect(bkX + 1, kStartY + 1, bkW - 2, 5);
+      }
+
+      // ── Lower panel (knee board) ────────────────────────────────
+      ctx.fillStyle = '#141414';
+      ctx.fillRect(pX + 4, pY + 77, pW - 8, 18);
+      // Panel moulding line
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pX + 6, pY + 79); ctx.lineTo(pX + pW - 6, pY + 79); ctx.stroke();
+
+      // ── Toe blocks / legs ────────────────────────────────────────
+      ctx.fillStyle = '#181818';
+      ctx.fillRect(pX,          pY + 95, 12, pHt - 95);
+      ctx.fillRect(pX + pW - 12, pY + 95, 12, pHt - 95);
+      // Leg taper highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(pX + 1, pY + 96, 3, pHt - 97);
+      ctx.fillRect(pX + pW - 4, pY + 96, 3, pHt - 97);
+
+      // ── Pedal lyre ───────────────────────────────────────────────
+      ctx.fillStyle = '#0d0d0d';
+      ctx.fillRect(pX + pW/2 - 14, pY + 95, 28, 12);
+      // Three pedals (gold)
+      const pedalG = ctx.createLinearGradient(0, pY + 97, 0, pY + 105);
+      pedalG.addColorStop(0, '#c8a840'); pedalG.addColorStop(1, '#886010');
+      ctx.fillStyle = pedalG;
+      for (const px2 of [pX + pW/2 - 10, pX + pW/2 - 2, pX + pW/2 + 6] as number[]) {
+        ctx.beginPath(); ctx.roundRect(px2, pY + 97, 6, 8, 2); ctx.fill();
+      }
+
+      // ── Piano bench ──────────────────────────────────────────────
+      const bchX = pX - 8, bchY = p0.y - 22, bchW = 40, bchH = 8;
+      // Seat cushion
+      const cushG = ctx.createLinearGradient(bchX, bchY, bchX, bchY + bchH);
+      cushG.addColorStop(0, '#2a1a0a'); cushG.addColorStop(1, '#160c04');
+      ctx.fillStyle = cushG;
+      ctx.beginPath(); ctx.roundRect(bchX, bchY, bchW, bchH, 3); ctx.fill();
+      ctx.strokeStyle = 'rgba(120,60,10,0.4)'; ctx.lineWidth = 1;
+      ctx.strokeRect(bchX + 2, bchY + 2, bchW - 4, bchH - 4);
+      // Bench legs
+      ctx.fillStyle = '#111';
+      ctx.fillRect(bchX + 3,       bchY + bchH, 5, 14);
+      ctx.fillRect(bchX + bchW - 8, bchY + bchH, 5, 14);
+
+      ctx.restore();
+
+      // ── Drum kit on right platform (platforms[2]) ────────────────
+      {
+        const p2 = platforms[2];
+        const kx = p2.x + p2.width * 0.55;
+        const ky = p2.y;
+        ctx.save();
+        // Bass drum (crimson shell, 38×30)
+        const bdG = ctx.createLinearGradient(kx - 19, ky - 15, kx + 19, ky + 15);
+        bdG.addColorStop(0, '#6a0000'); bdG.addColorStop(0.5, '#8b0000'); bdG.addColorStop(1, '#4a0000');
+        ctx.fillStyle = bdG;
+        ctx.beginPath(); ctx.ellipse(kx, ky - 15, 19, 15, 0, 0, Math.PI * 2); ctx.fill();
+        // Resonant head ring
+        ctx.strokeStyle = '#c0a030'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(kx, ky - 15, 19, 15, 0, 0, Math.PI * 2); ctx.stroke();
+        // Bass drum legs
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(kx - 14, ky - 5); ctx.lineTo(kx - 18, ky); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(kx + 14, ky - 5); ctx.lineTo(kx + 18, ky); ctx.stroke();
+        // Tension rods (gold dots)
+        ctx.fillStyle = '#c8a030';
+        for (let r = 0; r < 8; r++) {
+          const ra = (r / 8) * Math.PI * 2;
+          ctx.beginPath(); ctx.arc(kx + Math.cos(ra) * 17, ky - 15 + Math.sin(ra) * 13, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // Snare drum — chrome, 22×14, on stand at kx-30
+        const sx = kx - 30, sy = ky - 28;
+        ctx.fillStyle = '#b0b0b0';
+        ctx.beginPath(); ctx.ellipse(sx, sy, 11, 7, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(sx, sy, 11, 7, 0, 0, Math.PI * 2); ctx.stroke();
+        // Snare strainer
+        ctx.fillStyle = '#999'; ctx.fillRect(sx - 12, sy - 1, 24, 2);
+        // Stand legs
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(sx - 5, sy + 7); ctx.lineTo(sx - 8, ky); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx + 5, sy + 7); ctx.lineTo(sx + 8, ky); ctx.stroke();
+
+        // Hi-hat — two stacked gold cymbals on stand at kx-44
+        const hx = kx - 44, hy = ky - 38;
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(hx, hy + 10); ctx.lineTo(hx, ky); ctx.stroke(); // pole
+        ctx.beginPath(); ctx.moveTo(hx - 8, ky); ctx.lineTo(hx + 8, ky); ctx.stroke(); // base
+        ctx.fillStyle = '#c8a030';
+        ctx.beginPath(); ctx.ellipse(hx, hy,     13, 3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(hx, hy + 5, 13, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+        // Crash cymbal — tilted gold ellipse on stand at kx+22
+        const crx = kx + 22, cry = ky - 52;
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(crx, cry + 14); ctx.lineTo(crx - 4, ky); ctx.stroke();
+        ctx.save();
+        ctx.translate(crx, cry);
+        ctx.rotate(-0.3);
+        ctx.fillStyle = '#b89020'; ctx.globalAlpha = 0.9;
+        ctx.beginPath(); ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+
+        // Floor tom — dark red shell, three legs, at kx+32
+        const ftx = kx + 32, fty = ky - 20;
+        const ftG = ctx.createLinearGradient(ftx - 14, fty, ftx + 14, fty);
+        ftG.addColorStop(0, '#5a0000'); ftG.addColorStop(0.5, '#7a0000'); ftG.addColorStop(1, '#3a0000');
+        ctx.fillStyle = ftG;
+        ctx.beginPath(); ctx.ellipse(ftx, fty, 14, 10, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#c0a030'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(ftx, fty, 14, 10, 0, 0, Math.PI * 2); ctx.stroke();
+        // Three legs
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(ftx - 10, fty + 8); ctx.lineTo(ftx - 14, ky); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ftx,      fty + 10); ctx.lineTo(ftx,      ky); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ftx + 10, fty + 8);  ctx.lineTo(ftx + 14, ky); ctx.stroke();
+
+        // Ride cymbal — gold ellipse at kx+38, ky-42
+        const rx2 = kx + 38, ry2 = ky - 42;
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(rx2 - 2, ry2 + 12); ctx.lineTo(rx2 + 5, ky); ctx.stroke();
+        ctx.save();
+        ctx.translate(rx2, ry2);
+        ctx.rotate(0.2);
+        ctx.fillStyle = '#c8a030'; ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.ellipse(0, 0, 18, 5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      // ── Trumpet on stand — center platform (platforms[1]) ────────
+      {
+        const p1 = platforms[1];
+        const tx = p1.x + p1.width * 0.72;
+        const ty = p1.y;
+        ctx.save();
+        // Folding tripod stand
+        ctx.strokeStyle = '#777'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(tx, ty - 50); ctx.lineTo(tx, ty - 5); ctx.stroke(); // pole
+        ctx.beginPath(); ctx.moveTo(tx - 8, ty - 5); ctx.lineTo(tx + 8, ty - 5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx - 5, ty - 5); ctx.lineTo(tx - 12, ty); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx + 5, ty - 5); ctx.lineTo(tx + 12, ty); ctx.stroke();
+        // Cradle arms at top
+        ctx.beginPath(); ctx.moveTo(tx - 10, ty - 50); ctx.lineTo(tx - 4, ty - 46); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx + 10, ty - 50); ctx.lineTo(tx + 4, ty - 46); ctx.stroke();
+
+        // Trumpet resting in cradle (brass body)
+        ctx.save();
+        ctx.translate(tx, ty - 47);
+        ctx.rotate(-0.15);
+        // Main tube body
+        const trG = ctx.createLinearGradient(-22, -4, 22, 4);
+        trG.addColorStop(0, '#a07020'); trG.addColorStop(0.5, '#d4a830'); trG.addColorStop(1, '#a07020');
+        ctx.fillStyle = trG;
+        ctx.fillRect(-22, -4, 44, 8);
+        // Bell flare (bezier)
+        ctx.fillStyle = '#c8a030';
+        ctx.beginPath();
+        ctx.moveTo(20, -4);
+        ctx.bezierCurveTo(26, -4, 32, -8, 36, -12);
+        ctx.bezierCurveTo(38, -14, 38, -10, 36, -8);
+        ctx.bezierCurveTo(32, -4, 26,  0, 20,  4);
+        ctx.closePath(); ctx.fill();
+        // 3 valve casings (dome tops)
+        ctx.fillStyle = '#b89020';
+        for (let v = 0; v < 3; v++) {
+          ctx.beginPath(); ctx.roundRect(-8 + v * 6, -8, 5, 14, 2); ctx.fill();
+          // Dome cap
+          ctx.fillStyle = '#d4a830';
+          ctx.beginPath(); ctx.ellipse(-6 + v * 6, -8, 3, 2, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#b89020';
+        }
+        // Tuning slide U-bend
+        ctx.strokeStyle = '#c8a030'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(-18, 0, 6, -Math.PI/2, Math.PI/2); ctx.stroke();
+        // Mouthpiece
+        ctx.fillStyle = '#c0c0c0';
+        ctx.beginPath(); ctx.roundRect(-28, -2, 8, 4, 1); ctx.fill();
+        ctx.restore();
+        ctx.restore();
+      }
+
+      // ── Microphone on stand — left platform, right of piano ──────
+      {
+        const p0 = platforms[0];
+        const micX = p0.x + 118;
+        const micY = p0.y;
+        ctx.save();
+        // Weighted base
+        ctx.fillStyle = '#555';
+        ctx.beginPath(); ctx.ellipse(micX, micY - 3, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
+        // Vertical pole
+        ctx.strokeStyle = '#777'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(micX, micY - 3); ctx.lineTo(micX, micY - 68); ctx.stroke();
+        // Boom arm (angled)
+        ctx.beginPath(); ctx.moveTo(micX, micY - 58); ctx.lineTo(micX + 28, micY - 72); ctx.stroke();
+        // Boom counterweight
+        ctx.fillStyle = '#555';
+        ctx.beginPath(); ctx.roundRect(micX - 2, micY - 62, 5, 10, 2); ctx.fill();
+
+        // Bullet-style dynamic mic capsule at boom tip
+        const bx = micX + 28, by = micY - 72;
+        // Satin black body
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath(); ctx.roundRect(bx - 4, by - 14, 8, 18, 3); ctx.fill();
+        // Wire mesh grill dots
+        ctx.fillStyle = 'rgba(120,120,120,0.6)';
+        for (let gx = -2; gx <= 2; gx += 2) {
+          for (let gy = 0; gy >= -10; gy -= 3) {
+            ctx.beginPath(); ctx.arc(bx + gx, by + gy, 0.8, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        // Dome top
+        ctx.fillStyle = '#2a2a2a';
+        ctx.beginPath(); ctx.ellipse(bx, by - 14, 4, 5, 0, 0, Math.PI, Math.PI * 2); ctx.fill();
+        // Clip / attachment
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(bx, by + 6, 5, 0, Math.PI); ctx.stroke();
+        ctx.restore();
+      }
+
     },
     memories: (w, h) => [
-      { x: w * 0.80, y: h * 0.73 - 55, type: 'trombone', description: 'Tamir\'s trombone — the night we played together' },
-      { x: w * 0.50, y: h * 0.55 - 62, type: 'future',   videoSrc: '/EldadTamirFuturePerforming.mp4', description: 'A future performance — the show must go on' },
+      { x: w * 0.50, y: h * 0.8 - 65 - 62, type: 'future',   videoSrc: '/EldadTamirFuturePerforming.mp4', description: 'A future performance — the show must go on' },
     ],
     drawMemory: (ctx, mem, time) => {
       const mx = mem.x;
