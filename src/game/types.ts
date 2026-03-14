@@ -30,6 +30,8 @@ export interface MemoryArtifact {
   x: number;
   y: number;
   type: string;
+  videoSrc?: string;
+  description?: string;
 }
 
 export interface SceneItem {
@@ -43,8 +45,11 @@ export interface Scene {
   name: string;
   background: (ctx: CanvasRenderingContext2D, w: number, h: number, time: number) => void;
   platforms: (w: number, h: number) => Platform[];
-  memory: (w: number, h: number) => MemoryArtifact;
+  memory?: (w: number, h: number) => MemoryArtifact;
+  memories?: (w: number, h: number) => MemoryArtifact[];
   drawMemory: (ctx: CanvasRenderingContext2D, mem: MemoryArtifact, time: number) => void;
+  drawPlatforms?: (ctx: CanvasRenderingContext2D, platforms: Platform[]) => void;
+  backgroundLabels?: (w: number, h: number) => Array<{ x: number; y: number; radius: number; title: string; subtitle?: string }>;
   item?: (w: number, h: number) => SceneItem;
   drawItem?: (ctx: CanvasRenderingContext2D, item: SceneItem) => void;
   playerStart?: (w: number, h: number) => { x: number; y: number };
