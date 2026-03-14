@@ -71,6 +71,8 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
     player.x = start.x;
     player.y = start.y;
     player.snowboarding = !!scene.snowboarding;
+    player.jumpPower = scene.playerPhysics?.jumpPower ?? 15;
+    player.gravity = scene.playerPhysics?.gravity ?? 0.6;
     player.velocityX = 0;
     player.velocityY = 0;
     player.hasItem = false;

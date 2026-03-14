@@ -2102,6 +2102,10 @@ export const scenes: Record<string, Scene> = {
     return {
     name: '🎺 Eldad & Tamir Live',
     playerStart: (w, h) => ({ x: 50, y: h * 0.7 }),
+    playerPhysics: {
+      jumpPower: 12,
+      gravity: 0.85,
+    },
     background: (ctx, w, h, time) => {
       // Draw cached static background
       const bg = buildStatic(w, h);
