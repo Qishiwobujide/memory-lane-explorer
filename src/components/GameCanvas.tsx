@@ -23,6 +23,8 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewingVideo, setViewingVideo] = useState<string | undefined>(undefined);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const stateRef = useRef({
     player: createPlayer(),
@@ -37,6 +39,22 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
   const memoryAnimRef = useRef<Map<number, { x: number; y: number; dir: number; mirror: number; flipping: boolean; flipAngle: number }>>(new Map());
   const mouseRef = useRef<{ x: number; y: number } | null>(null);
   const showViewerRef = useRef(false);
+
+  const toggleMusic = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (musicPlaying) {
+      audio.pause();
+      setMusicPlaying(false);
+    } else {
+      // Update UI immediately so the button always responds visually
+      setMusicPlaying(true);
+      audio.play().catch((err) => {
+        console.error('Audio play failed:', err);
+        setMusicPlaying(false);
+      });
+    }
+  };
 
   const handleCloseViewer = useCallback(() => {
     showViewerRef.current = false;
@@ -372,6 +390,168 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         style={{ imageRendering: 'pixelated' }}
       />
       <ControlsOverlay showTricks={sceneKey === 'japan'} />
+      {sceneKey === 'concert' && (
+        <>
+          <audio ref={audioRef} src="/JazzMusicEldadAndTamir.mp3" loop preload="auto" />
+          <button
+            onClick={toggleMusic}
+            title={musicPlaying ? 'Pause' : 'Play'}
+            style={{
+              position: 'fixed',
+              bottom: 72,
+              right: 24,
+              zIndex: 9999,
+              pointerEvents: 'auto',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              userSelect: 'none',
+              filter: musicPlaying
+                ? 'drop-shadow(0 0 14px rgba(232,192,48,0.95)) drop-shadow(0 0 28px rgba(232,100,20,0.5))'
+                : 'drop-shadow(0 0 6px rgba(232,192,48,0.5))',
+              animation: musicPlaying ? 'none' : 'patifonPulse 1.4s ease-in-out infinite',
+            }}
+          >
+            <svg width="150" height="165" viewBox="0 0 150 165">
+              <defs>
+                <linearGradient id="g-horn" x1="10%" y1="90%" x2="90%" y2="10%">
+                  <stop offset="0%"   stopColor="#6a4008" />
+                  <stop offset="30%"  stopColor="#c08820" />
+                  <stop offset="60%"  stopColor="#f0d060" />
+                  <stop offset="100%" stopColor="#a87020" />
+                </linearGradient>
+                <linearGradient id="g-tube" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%"   stopColor="#f0d060" />
+                  <stop offset="100%" stopColor="#8b6010" />
+                </linearGradient>
+                <linearGradient id="g-cab" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%"   stopColor="#8a5020" />
+                  <stop offset="50%"  stopColor="#5a3010" />
+                  <stop offset="100%" stopColor="#2e1606" />
+                </linearGradient>
+                <radialGradient id="g-rec" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%"   stopColor="#300808" />
+                  <stop offset="85%"  stopColor="#0e0404" />
+                  <stop offset="100%" stopColor="#060202" />
+                </radialGradient>
+                <radialGradient id="g-platter" cx="50%" cy="30%" r="70%">
+                  <stop offset="0%"   stopColor="#5a3a18" />
+                  <stop offset="100%" stopColor="#1e0e04" />
+                </radialGradient>
+              </defs>
+
+              {/* ── Cabinet / base ── */}
+              <rect x="6" y="130" width="82" height="30" rx="5"
+                fill="url(#g-cab)" stroke="#d09030" strokeWidth="2" />
+              {/* cabinet top inlay */}
+              <rect x="11" y="134" width="72" height="4" rx="2"
+                fill="#a06020" opacity="0.5" />
+              {/* decorative drawer */}
+              <rect x="28" y="142" width="36" height="12" rx="3"
+                fill="#1e0e04" stroke="#a07020" strokeWidth="1" />
+              <line x1="46" y1="142" x2="46" y2="154"
+                stroke="#a07020" strokeWidth="1" opacity="0.6" />
+              {/* knob */}
+              <circle cx="39" cy="148" r="2.5" fill="#c09030" stroke="#e8c030" strokeWidth="0.8" />
+              <circle cx="53" cy="148" r="2.5" fill="#c09030" stroke="#e8c030" strokeWidth="0.8" />
+
+              {/* ── Turntable platter (ellipse on top of cabinet) ── */}
+              <ellipse cx="46" cy="130" rx="40" ry="9"
+                fill="url(#g-platter)" stroke="#a07020" strokeWidth="1.5" />
+
+              {/* ── Spinning vinyl record ── */}
+              <g style={{
+                transformBox: 'fill-box',
+                transformOrigin: '50% 50%',
+                animation: musicPlaying ? 'recordSpin 2.8s linear infinite' : 'none',
+              }}>
+                <circle cx="46" cy="112" r="36"
+                  fill="url(#g-rec)" stroke="#2a2a2a" strokeWidth="1.5" />
+                {/* grooves */}
+                <circle cx="46" cy="112" r="30" fill="none" stroke="rgba(255,255,255,0.055)" strokeWidth="1" />
+                <circle cx="46" cy="112" r="24" fill="none" stroke="rgba(255,255,255,0.055)" strokeWidth="1" />
+                <circle cx="46" cy="112" r="18" fill="none" stroke="rgba(255,255,255,0.055)" strokeWidth="1" />
+                {/* label */}
+                <circle cx="46" cy="112" r="11"
+                  fill="#c41818" stroke="#ff5030" strokeWidth="1.2" />
+                <circle cx="46" cy="112" r="4" fill="#0a0404" />
+              </g>
+
+              {/* ── Tonearm post ── */}
+              <rect x="79" y="110" width="9" height="22" rx="4"
+                fill="#5a3810" stroke="#d4a030" strokeWidth="1.5" />
+              <circle cx="83.5" cy="111" r="7"
+                fill="#3e2408" stroke="#e8c030" strokeWidth="2" />
+              <circle cx="83.5" cy="111" r="3"
+                fill="#c09030" />
+
+              {/* ── Tonearm ── */}
+              <path d="M 83 108 Q 72 93 60 84 Q 53 79 52 95"
+                stroke="url(#g-tube)" strokeWidth="4.5"
+                fill="none" strokeLinecap="round" />
+              {/* needle */}
+              <circle cx="52" cy="96" r="3"
+                fill="#d0d0d0" stroke="#888" strokeWidth="1" />
+
+              {/* ── Horn tube / neck ── */}
+              <path d="M 54 88 C 62 70 68 54 76 36"
+                stroke="#8b6010" strokeWidth="12"
+                fill="none" strokeLinecap="round" />
+              <path d="M 54 88 C 62 70 68 54 76 36"
+                stroke="url(#g-tube)" strokeWidth="8"
+                fill="none" strokeLinecap="round" />
+
+              {/* ── Horn bell (morning-glory flare) ── */}
+              {/* outer face */}
+              <path d="
+                M 74 38
+                C 80 22, 96 6, 126 1
+                C 140 -2, 150 2, 149 6
+                C 147 12, 132 22, 118 32
+                C 104 42, 88 48, 78 52
+                C 75 53, 72 51, 74 46
+                Z"
+                fill="url(#g-horn)" stroke="#e8c030" strokeWidth="1.8" />
+              {/* inner shadow for depth */}
+              <path d="
+                M 76 47
+                C 88 41, 106 30, 122 18
+                C 132 10, 142 6, 149 6
+                C 146 9, 134 16, 120 26
+                C 106 36, 90 44, 80 50
+                Z"
+                fill="rgba(0,0,0,0.22)" />
+              {/* rim highlight */}
+              <path d="M 126 1 C 137 -1 150 2 149 6"
+                stroke="rgba(255,255,220,0.55)" strokeWidth="2"
+                fill="none" strokeLinecap="round" />
+
+              {/* ── "PRESS" label when idle ── */}
+              {!musicPlaying && (
+                <text x="46" y="160"
+                  textAnchor="middle"
+                  fill="#e8c030"
+                  fontSize="7.5"
+                  fontFamily='"Press Start 2P", monospace'
+                  opacity="0.95">
+                  ▶ PRESS
+                </text>
+              )}
+            </svg>
+          </button>
+        </>
+      )}
+      <style>{`
+        @keyframes recordSpin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes patifonPulse {
+          0%, 100% { filter: drop-shadow(0 0 6px rgba(232,192,48,0.5)); }
+          50%       { filter: drop-shadow(0 0 18px rgba(232,192,48,1)) drop-shadow(0 0 34px rgba(232,100,20,0.6)); }
+        }
+      `}</style>
       {viewerOpen && (
         <MemoryViewer videoSrc={viewingVideo} onClose={handleCloseViewer} />
       )}
