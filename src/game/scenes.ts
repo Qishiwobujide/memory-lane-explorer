@@ -1945,6 +1945,154 @@ export const scenes: Record<string, Scene> = {
       c.strokeStyle = '#d4a828'; c.lineWidth = 1;
       c.strokeRect(px + 2, py + 2, pw - 4, ph - 4);
 
+      // --- Wall-mounted acoustic guitar (left of poster) ---
+      (() => {
+        const gx = px - 60, gy = h * 0.18;
+        c.save(); c.translate(gx, gy); c.rotate(0.12);
+        // Neck
+        c.fillStyle = '#5a2a08'; c.fillRect(-3, -55, 6, 45);
+        // Frets
+        c.strokeStyle = '#c8a040'; c.lineWidth = 1;
+        for (let f = 0; f < 6; f++) { c.beginPath(); c.moveTo(-3, -52 + f * 7); c.lineTo(3, -52 + f * 7); c.stroke(); }
+        // Headstock
+        c.fillStyle = '#3a1604'; c.fillRect(-5, -62, 10, 10);
+        c.fillStyle = '#c8a030';
+        for (let p = 0; p < 3; p++) { c.beginPath(); c.arc(-7, -59 + p * 4, 2, 0, Math.PI * 2); c.fill(); }
+        for (let p = 0; p < 3; p++) { c.beginPath(); c.arc(7, -59 + p * 4, 2, 0, Math.PI * 2); c.fill(); }
+        // Body - upper bout
+        const sb = c.createRadialGradient(0, 0, 2, 0, 0, 28);
+        sb.addColorStop(0, '#e8a040'); sb.addColorStop(0.5, '#b06810'); sb.addColorStop(1, '#6a3808');
+        c.fillStyle = sb;
+        c.beginPath(); c.ellipse(0, -4, 18, 14, 0, 0, Math.PI * 2); c.fill();
+        // Lower bout
+        c.beginPath(); c.ellipse(0, 18, 22, 17, 0, 0, Math.PI * 2); c.fill();
+        // Sound hole
+        c.fillStyle = '#1a0a04';
+        c.beginPath(); c.arc(0, 6, 7, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = '#c8a030'; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(0, 6, 7, 0, Math.PI * 2); c.stroke();
+        // Strings
+        c.strokeStyle = 'rgba(230,220,180,0.6)'; c.lineWidth = 0.7;
+        for (let s = -2; s <= 2; s++) { c.beginPath(); c.moveTo(s * 1.5, -10); c.lineTo(s * 1.5, 30); c.stroke(); }
+        // Bridge
+        c.fillStyle = '#4a2208'; c.fillRect(-8, 26, 16, 3);
+        // Wall mount hook
+        c.fillStyle = '#888'; c.fillRect(-2, -64, 4, 5);
+        c.restore();
+      })();
+
+      // --- Wall-mounted electric guitar (right of poster) ---
+      (() => {
+        const gx = px + pw + 55, gy = h * 0.2;
+        c.save(); c.translate(gx, gy); c.rotate(-0.1);
+        // Neck
+        c.fillStyle = '#4a2008'; c.fillRect(-3, -50, 6, 40);
+        c.strokeStyle = '#aaa'; c.lineWidth = 1;
+        for (let f = 0; f < 6; f++) { c.beginPath(); c.moveTo(-3, -47 + f * 6); c.lineTo(3, -47 + f * 6); c.stroke(); }
+        // Headstock
+        c.fillStyle = '#1a1a1a'; c.fillRect(-5, -56, 10, 8);
+        c.fillStyle = '#c0c0c0';
+        for (let p = 0; p < 3; p++) { c.beginPath(); c.arc(-7, -54 + p * 3, 1.5, 0, Math.PI * 2); c.fill(); }
+        for (let p = 0; p < 3; p++) { c.beginPath(); c.arc(7, -54 + p * 3, 1.5, 0, Math.PI * 2); c.fill(); }
+        // Body (SG/LP style)
+        c.fillStyle = '#8b0000';
+        c.beginPath(); c.ellipse(-2, 0, 16, 12, 0.1, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(0, 18, 20, 15, 0, 0, Math.PI * 2); c.fill();
+        // Pickguard
+        c.fillStyle = 'rgba(20,10,5,0.6)';
+        c.beginPath(); c.ellipse(6, 14, 8, 11, 0.2, 0, Math.PI * 2); c.fill();
+        // Pickups
+        c.fillStyle = '#c0c0c0';
+        c.fillRect(-6, 2, 12, 3);
+        c.fillRect(-6, 14, 12, 3);
+        // Bridge
+        c.fillStyle = '#c0c0c0'; c.fillRect(-5, 24, 10, 2);
+        // Strings
+        c.strokeStyle = 'rgba(220,220,200,0.5)'; c.lineWidth = 0.6;
+        for (let s = -2; s <= 2; s++) { c.beginPath(); c.moveTo(s * 1.3, -10); c.lineTo(s * 1.3, 26); c.stroke(); }
+        // Knobs
+        c.fillStyle = '#333';
+        c.beginPath(); c.arc(-8, 22, 2.5, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(10, 22, 2.5, 0, Math.PI * 2); c.fill();
+        // Wall mount
+        c.fillStyle = '#888'; c.fillRect(-2, -58, 4, 5);
+        c.restore();
+      })();
+
+      // --- Saxophone on stand (left side of stage) ---
+      (() => {
+        const sx = w * 0.08, sy = h * 0.73;
+        c.save(); c.translate(sx, sy);
+        // Stand tripod
+        c.strokeStyle = '#3a3a3a'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(-12, 20); c.stroke();
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(12, 20); c.stroke();
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(0, 20); c.stroke();
+        // Sax body
+        c.strokeStyle = '#c07808'; c.lineWidth = 7; c.lineCap = 'round';
+        c.beginPath();
+        c.moveTo(3, -8);
+        c.quadraticCurveTo(-6, -28, -8, -48);
+        c.quadraticCurveTo(-10, -60, -3, -65);
+        c.stroke();
+        c.strokeStyle = '#e0a020'; c.lineWidth = 4;
+        c.beginPath();
+        c.moveTo(3, -8);
+        c.quadraticCurveTo(-6, -28, -8, -48);
+        c.quadraticCurveTo(-10, -60, -3, -65);
+        c.stroke();
+        // Bell
+        c.fillStyle = '#c07808';
+        c.beginPath(); c.ellipse(7, -2, 8, 5, 0.3, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = '#e8b030'; c.lineWidth = 1;
+        c.beginPath(); c.ellipse(7, -2, 8, 5, 0.3, 0, Math.PI * 2); c.stroke();
+        // Keys
+        c.fillStyle = '#e0a020';
+        for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(-4 - k * 0.5, -20 - k * 10, 2.5, 0, Math.PI * 2); c.fill(); }
+        c.restore();
+      })();
+
+      // --- Upright bass (right side of stage) ---
+      (() => {
+        const bx = w * 0.92, by = h * 0.73;
+        c.save(); c.translate(bx, by); c.rotate(0.08);
+        // Neck/fingerboard
+        c.fillStyle = '#2a1204'; c.fillRect(-3, -90, 6, 55);
+        // Scroll
+        c.fillStyle = '#2a1204';
+        c.beginPath();
+        c.moveTo(-3, -90);
+        c.quadraticCurveTo(-8, -98, -4, -100);
+        c.quadraticCurveTo(0, -102, 3, -98);
+        c.lineTo(3, -90);
+        c.fill();
+        // Tuning pegs
+        c.fillStyle = '#1a0a04';
+        c.fillRect(-7, -94, 4, 2); c.fillRect(3, -94, 4, 2);
+        c.fillRect(-7, -88, 4, 2); c.fillRect(3, -88, 4, 2);
+        // Body
+        const bb = c.createRadialGradient(0, -20, 3, 0, -20, 25);
+        bb.addColorStop(0, '#c8860a'); bb.addColorStop(0.6, '#8a5a08'); bb.addColorStop(1, '#4a2a04');
+        c.fillStyle = bb;
+        c.beginPath(); c.ellipse(0, -28, 14, 10, 0, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(0, -8, 18, 14, 0, 0, Math.PI * 2); c.fill();
+        // F-holes
+        c.strokeStyle = '#1a0a04'; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(-6, -22); c.quadraticCurveTo(-8, -16, -6, -10); c.stroke();
+        c.beginPath(); c.moveTo(6, -22); c.quadraticCurveTo(8, -16, 6, -10); c.stroke();
+        // Bridge
+        c.fillStyle = '#4a2a08'; c.fillRect(-6, -12, 12, 2);
+        // Strings
+        c.strokeStyle = 'rgba(220,210,180,0.6)'; c.lineWidth = 0.8;
+        for (let s = -2; s <= 2; s += 2) { c.beginPath(); c.moveTo(s, -35); c.lineTo(s, 0); c.stroke(); }
+        // Tailpiece
+        c.fillStyle = '#1a0a04'; c.fillRect(-3, -2, 6, 4);
+        // End pin
+        c.strokeStyle = '#666'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(0, 2); c.lineTo(0, 14); c.stroke();
+        c.restore();
+      })();
+
       return staticCache;
     }
 
