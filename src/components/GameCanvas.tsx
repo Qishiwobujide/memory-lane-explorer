@@ -133,6 +133,11 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         e.preventDefault();
       }
 
+      if (e.key === 'f' || e.key === 'F') {
+        player.flying = !player.flying;
+        if (player.flying) player.velocityY = 0;
+      }
+
       if (e.key === '1') startTrick(player, 'flip');
       if (e.key === '2') startTrick(player, 'grab');
       if (e.key === '3') startTrick(player, 'spin');
@@ -251,6 +256,51 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         updateTrick(player);
       }
       drawPlayer(ctx, player, time);
+
+      // Flying wings visual
+      if (player.flying) {
+        const wx = player.x + player.width / 2;
+        const wy = player.y + player.height * 0.4;
+        const t = Date.now() * 0.004;
+        const flapAngle = Math.sin(t) * 0.5;
+        ctx.save();
+        ctx.globalAlpha = 0.82;
+        // Left wing
+        ctx.save();
+        ctx.translate(wx, wy);
+        ctx.rotate(-flapAngle);
+        ctx.fillStyle = '#ffe066';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(-28, -18, -52, -8, -44, 14);
+        ctx.bezierCurveTo(-36, 22, -10, 10, 0, 0);
+        ctx.fill();
+        ctx.strokeStyle = '#cc9900'; ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+        // Right wing
+        ctx.save();
+        ctx.translate(wx, wy);
+        ctx.rotate(flapAngle);
+        ctx.fillStyle = '#ffe066';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(28, -18, 52, -8, 44, 14);
+        ctx.bezierCurveTo(36, 22, 10, 10, 0, 0);
+        ctx.fill();
+        ctx.strokeStyle = '#cc9900'; ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+        ctx.restore();
+        // HUD badge
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath(); ctx.roundRect(w - 130, 12, 110, 26, 6); ctx.fill();
+        ctx.fillStyle = '#ffe066';
+        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.fillText('🪶 FLYING', w - 120, 30);
+        ctx.restore();
+      }
 
       // Trick name
       if (player.trick && player.trickTimer > 0) {
@@ -459,6 +509,48 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         style={{ imageRendering: 'pixelated' }}
       />
       <ControlsOverlay showTricks={sceneKey === 'japan'} />
+
+      {/* Charizard — DOM img so the animated GIF plays natively (canvas kills animation) */}
+      {sceneKey === 'tokyo' && !editorMode && (
+        <>
+          <style>{`
+            @keyframes charizard-float {
+              0%, 100% { transform: translate(0, 0); }
+              50%       { transform: translate(${Math.round(canvasSize.w * 0.012)}px, ${Math.round(canvasSize.h * 0.022)}px); }
+            }
+          `}</style>
+          <img
+            src="https://img.pokemondb.net/sprites/black-white/anim/normal/charizard.gif"
+            alt="Charizard"
+            style={{
+              position: 'fixed',
+              left:   canvasSize.w * 0.908,
+              top:    canvasSize.h * 0.200,
+              width:  canvasSize.h * 0.131,
+              height: canvasSize.h * 0.131,
+              pointerEvents: 'none',
+              zIndex: 12,
+              imageRendering: 'pixelated',
+              animation: 'charizard-float 4s ease-in-out infinite',
+            }}
+          />
+          <img
+            src="https://img.pokemondb.net/sprites/black-white/anim/normal/snorlax.gif"
+            alt="Snorlax"
+            style={{
+              position: 'fixed',
+              left:   canvasSize.w * 0.803,
+              top:    canvasSize.h * 0.376,
+              width:  canvasSize.h * 0.085,
+              height: canvasSize.h * 0.085,
+              pointerEvents: 'none',
+              zIndex: 12,
+              imageRendering: 'crisp-edges',
+            }}
+          />
+        </>
+      )}
+
       {editorMode && (
         <SceneEditorOverlay
           sceneKey={sceneKey}

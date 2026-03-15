@@ -17,6 +17,7 @@ export interface Player {
   trick: string | null;
   trickTimer: number;
   trickRotation: number;
+  flying: boolean;
 }
 
 export interface Platform {

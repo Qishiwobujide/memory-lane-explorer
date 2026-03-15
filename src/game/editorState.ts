@@ -11,6 +11,7 @@ export interface EditorPin {
 export interface ExtraObject {
   id: string;
   src: string;
+  scene: string;  // which scene this object belongs to
   xFrac: number;
   yFrac: number;
   wFrac: number;  // width  / canvasH
@@ -18,7 +19,7 @@ export interface ExtraObject {
 }
 
 const LS_PINS   = 'editorPins_v1';
-const LS_EXTRAS = 'editorExtras_v1';
+const LS_EXTRAS = 'editorExtras_v2'; // bumped version — clears old scene-less data
 
 function loadPins(): Record<string, EditorPin> {
   try { return JSON.parse(localStorage.getItem(LS_PINS) ?? '{}'); } catch { return {}; }
@@ -33,8 +34,14 @@ export const editorPins: Record<string, EditorPin> = loadPins();
 export const extraObjects: ExtraObject[] = loadExtras();
 
 let _active = false;
-export const isEditorActive = () => _active;
-export const setEditorActive = (v: boolean) => { _active = v; };
+let _currentScene = '';
+export const isEditorActive    = () => _active;
+export const setEditorActive   = (v: boolean) => { _active = v; };
+export const setCurrentScene   = (s: string)  => { _currentScene = s; };
+export const getCurrentScene   = () => _currentScene;
+
+/** Returns only the extra objects that belong to the given scene. */
+export const sceneExtras = (scene: string) => extraObjects.filter(o => o.scene === scene);
 
 export const setPin = (id: string, xFrac: number, yFrac: number, wFrac?: number, hFrac?: number) => {
   editorPins[id] = { ...editorPins[id], xFrac, yFrac, ...(wFrac != null ? { wFrac } : {}), ...(hFrac != null ? { hFrac } : {}) };

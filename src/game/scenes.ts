@@ -1,5 +1,5 @@
 import { Scene } from './types';
-import { isEditorActive, editorPins, extraObjects, getEditorImage, setHidden as _setHidden } from './editorState';
+import { isEditorActive, editorPins, sceneExtras, getEditorImage, setHidden as _setHidden } from './editorState';
 void _setHidden; // imported for side-effect typing only
 
 // Pre-load the Naked Castle logo (used in castle scene background)
@@ -388,7 +388,7 @@ export const scenes: Record<string, Scene> = {
         ctx.fill();
       }
       // Title label above stall
-      drawMemoryLabel(kcx + 35, kcy - 116, '☕', 'Hot Choco Stop', '');
+      drawMemoryLabel(kcx + 35, kcy - 72, '☕', 'Hot Choco Stop', '');
 
       // ── 6 FRIENDS ON THE SLOPE ──────────────────────────────────
       const skierStartX = cx + 80;
@@ -1721,11 +1721,11 @@ export const scenes: Record<string, Scene> = {
       }
 
       // ── EXTRA OBJECTS (editor-added from library) ──────────────────────
-      for (const obj of extraObjects) {
+      for (const obj of sceneExtras("castle")) {
+        if (!obj.src || !(obj.wFrac > 0) || !(obj.hFrac > 0)) continue;
         const img = getEditorImage(obj.src);
-        if (img.complete && img.naturalWidth > 0) {
+        if (img.complete && img.naturalWidth > 0)
           ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
-        }
       }
     },
     platforms: (w, h) => [
@@ -2141,23 +2141,95 @@ export const scenes: Record<string, Scene> = {
       edgeG.addColorStop(0, 'rgba(200,90,20,0.3)'); edgeG.addColorStop(1, 'transparent');
       c.fillStyle = edgeG; c.fillRect(0, h * 0.73, w, h * 0.03);
 
-      // Side curtains (deep velvet red)
+      // ── Upgraded velvet curtains (18% wide, lush crimson with folds & gold trim) ──
       for (let side = 0; side < 2; side++) {
-        const cGrad = side === 0
-          ? c.createLinearGradient(0, 0, w * 0.08, 0)
-          : c.createLinearGradient(w * 0.92, 0, w, 0);
-        cGrad.addColorStop(side === 0 ? 0 : 1, '#2a0404');
-        cGrad.addColorStop(side === 0 ? 1 : 0, 'transparent');
+        const cx0 = side === 0 ? 0 : w * 0.82;
+        const curtW = w * 0.18;
+        const cGrad = c.createLinearGradient(cx0, 0, cx0 + curtW, 0);
+        if (side === 0) {
+          cGrad.addColorStop(0,   '#4a0808');
+          cGrad.addColorStop(0.5, '#3a0606');
+          cGrad.addColorStop(1,   'transparent');
+        } else {
+          cGrad.addColorStop(0,   'transparent');
+          cGrad.addColorStop(0.5, '#3a0606');
+          cGrad.addColorStop(1,   '#4a0808');
+        }
         c.fillStyle = cGrad;
-        c.fillRect(side === 0 ? 0 : w * 0.92, 0, w * 0.08, h);
-        // Curtain fold lines
-        c.strokeStyle = 'rgba(60,10,10,0.3)'; c.lineWidth = 1;
-        const startX = side === 0 ? w * 0.02 : w * 0.94;
-        for (let f = 0; f < 3; f++) {
+        c.fillRect(cx0, 0, curtW, h);
+        // Multiple vertical fold shadows
+        const folds = 6;
+        for (let f = 0; f < folds; f++) {
+          const fx = cx0 + (f + 0.5) * (curtW / folds);
+          c.strokeStyle = 'rgba(20,0,0,0.45)'; c.lineWidth = 2;
           c.beginPath();
-          c.moveTo(startX + f * 8, 0);
-          c.quadraticCurveTo(startX + f * 8 + 4, h * 0.5, startX + f * 8, h);
+          c.moveTo(fx, 0);
+          c.quadraticCurveTo(fx + 5, h * 0.4, fx - 3, h * 0.7);
+          c.quadraticCurveTo(fx + 4, h * 0.85, fx, h);
           c.stroke();
+          // Light fold highlight
+          c.strokeStyle = 'rgba(120,20,20,0.15)'; c.lineWidth = 1;
+          c.beginPath();
+          c.moveTo(fx + 3, 0);
+          c.quadraticCurveTo(fx + 7, h * 0.4, fx, h * 0.75);
+          c.stroke();
+        }
+        // Gold trim edge (inner)
+        const trimX = side === 0 ? w * 0.18 - 1 : w * 0.82 + 1;
+        c.strokeStyle = 'rgba(200,160,40,0.7)'; c.lineWidth = 2.5;
+        c.beginPath(); c.moveTo(trimX, 0); c.lineTo(trimX, h); c.stroke();
+        // Gold tassel fringe at bottom hem
+        c.strokeStyle = 'rgba(200,160,40,0.65)'; c.lineWidth = 1.5;
+        c.fillStyle = 'rgba(200,160,40,0.65)';
+        const tassels = 10;
+        for (let t = 0; t < tassels; t++) {
+          const tx = cx0 + (t + 0.5) * (curtW / tassels);
+          const tLen = 10 + Math.sin(t * 2.1) * 4;
+          c.beginPath(); c.moveTo(tx, h - 30); c.lineTo(tx, h - 30 + tLen); c.stroke();
+          c.beginPath(); c.arc(tx, h - 30 + tLen, 2.5, 0, Math.PI * 2); c.fill();
+        }
+      }
+
+      // ── Proscenium arch (art-deco golden, ~60% width) ─────────────
+      {
+        const archCx = w * 0.5;
+        const archR  = w * 0.30;
+        const archBaseY = h * 0.73;
+        // Warm amber fill
+        const archFill = c.createRadialGradient(archCx, archBaseY, archR * 0.1, archCx, archBaseY, archR);
+        archFill.addColorStop(0, 'rgba(200,100,20,0.06)');
+        archFill.addColorStop(1, 'transparent');
+        c.fillStyle = archFill;
+        c.beginPath();
+        c.moveTo(archCx - archR, archBaseY);
+        c.arc(archCx, archBaseY, archR, Math.PI, 0);
+        c.lineTo(archCx + archR, archBaseY);
+        c.closePath();
+        c.fill();
+        // Outer arch ring
+        c.strokeStyle = 'rgba(200,160,40,0.55)'; c.lineWidth = 6;
+        c.beginPath(); c.arc(archCx, archBaseY, archR, Math.PI, 0); c.stroke();
+        // Inner arch ring
+        c.strokeStyle = 'rgba(220,180,60,0.4)'; c.lineWidth = 3;
+        c.beginPath(); c.arc(archCx, archBaseY, archR - 10, Math.PI, 0); c.stroke();
+        // Keystone at apex
+        const kx = archCx, ky = archBaseY - archR;
+        c.fillStyle = 'rgba(200,160,40,0.7)';
+        c.beginPath();
+        c.moveTo(kx - 12, ky + 10); c.lineTo(kx + 12, ky + 10);
+        c.lineTo(kx + 8,  ky - 8);  c.lineTo(kx - 8,  ky - 8); c.closePath(); c.fill();
+        // Corner rosettes
+        for (const [rx, ry] of [[archCx - archR, archBaseY - 6], [archCx + archR, archBaseY - 6]] as [number,number][]) {
+          c.fillStyle = 'rgba(200,160,40,0.6)';
+          c.beginPath(); c.arc(rx, ry, 8, 0, Math.PI * 2); c.fill();
+          c.strokeStyle = 'rgba(240,200,80,0.4)'; c.lineWidth = 1.5;
+          for (let r = 0; r < 6; r++) {
+            const ra = r * Math.PI / 3;
+            c.beginPath();
+            c.moveTo(rx + Math.cos(ra) * 5, ry + Math.sin(ra) * 5);
+            c.lineTo(rx + Math.cos(ra) * 11, ry + Math.sin(ra) * 11);
+            c.stroke();
+          }
         }
       }
 
@@ -2203,6 +2275,36 @@ export const scenes: Record<string, Scene> = {
           c.lineTo(lx + 18, ly + 90); c.lineTo(lx - 18, ly + 90);
           c.closePath(); c.fill();
         }
+      }
+
+      // ── Disco ball sphere (static; animated reflections in background()) ──
+      {
+        const dbx = w * 0.5, dby = h * 0.07, dbr = Math.min(w, h) * 0.04;
+        // Suspension wire
+        c.strokeStyle = 'rgba(150,150,150,0.6)'; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(dbx, 0); c.lineTo(dbx, dby - dbr); c.stroke();
+        // Silver sphere
+        const dbG = c.createRadialGradient(dbx - dbr * 0.3, dby - dbr * 0.3, 0, dbx, dby, dbr);
+        dbG.addColorStop(0, '#ffffff');
+        dbG.addColorStop(0.3, '#c0c8d0');
+        dbG.addColorStop(0.7, '#606870');
+        dbG.addColorStop(1, '#202428');
+        c.fillStyle = dbG;
+        c.beginPath(); c.arc(dbx, dby, dbr, 0, Math.PI * 2); c.fill();
+        // Mirror tile grid
+        c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 0.5;
+        for (let tRow = -4; tRow <= 4; tRow++) {
+          for (let tCol = -4; tCol <= 4; tCol++) {
+            const tx = dbx + tCol * dbr * 0.35;
+            const ty = dby + tRow * dbr * 0.35;
+            if (Math.sqrt((tx - dbx) ** 2 + (ty - dby) ** 2) < dbr * 0.9) {
+              c.strokeRect(tx - dbr * 0.15, ty - dbr * 0.15, dbr * 0.3, dbr * 0.3);
+            }
+          }
+        }
+        // Specular highlight
+        c.fillStyle = 'rgba(255,255,255,0.7)';
+        c.beginPath(); c.arc(dbx - dbr * 0.3, dby - dbr * 0.3, dbr * 0.15, 0, Math.PI * 2); c.fill();
       }
 
       // Bar counter
@@ -2256,6 +2358,68 @@ export const scenes: Record<string, Scene> = {
       // Bar front panel
       c.fillStyle = '#160a04';
       c.fillRect(w * 0.02, barY + barH, w * 0.96, h * 0.17);
+
+      // ── Overhead pendant lights above bar (Edison-style) ─────────
+      {
+        const pendPositions = [w * 0.25, w * 0.50, w * 0.75];
+        for (const px of pendPositions) {
+          const pendY = barY - 72, wireTopY = barY - 112;
+          // Wire
+          c.strokeStyle = 'rgba(100,80,50,0.7)'; c.lineWidth = 1;
+          c.beginPath(); c.moveTo(px, wireTopY); c.lineTo(px, pendY + 8); c.stroke();
+          // Bulb housing
+          c.fillStyle = '#2a1a08';
+          c.beginPath(); c.arc(px, pendY, 7, 0, Math.PI * 2); c.fill();
+          // Warm glow filament
+          c.fillStyle = 'rgba(255,200,80,0.85)';
+          c.beginPath(); c.arc(px, pendY, 4.5, 0, Math.PI * 2); c.fill();
+          // Ambient halo
+          const pG = c.createRadialGradient(px, pendY, 0, px, pendY, 38);
+          pG.addColorStop(0, 'rgba(255,180,60,0.22)');
+          pG.addColorStop(1, 'transparent');
+          c.fillStyle = pG; c.fillRect(px - 38, pendY - 38, 76, 76);
+        }
+      }
+
+      // ── Bar neon signs ─────────────────────────────────────────────
+      {
+        c.save();
+        c.font = 'bold 10px "Press Start 2P", monospace';
+        c.shadowColor = '#00ff88'; c.shadowBlur = 10;
+        c.fillStyle = 'rgba(0,255,120,0.85)';
+        c.fillText('OPEN', w * 0.04, barY - 18);
+        c.shadowColor = '#ff4488'; c.shadowBlur = 10;
+        c.fillStyle = 'rgba(255,60,120,0.85)';
+        c.fillText('BAR', w * 0.84, barY - 18);
+        c.restore();
+      }
+
+      // ── LED Backdrop Wall (behind poster area) ───────────────────
+      {
+        const ledX = w * 0.12, ledY = h * 0.04;
+        const ledW = w * 0.76, ledH = h * 0.44;
+        const cols = 8, rows = 5;
+        const cW = ledW / cols, cH = ledH / rows;
+        const ledPalette = [
+          '#6600cc','#0044ff','#cc00aa','#aa0066',
+          '#4400bb','#0066ff','#dd0099','#770055',
+          '#9900ee','#2244ff','#bb0088','#550044',
+          '#8800dd','#1155ff','#cc0077','#440055',
+          '#aa00ff','#3366ff','#bb0066','#330044',
+        ];
+        for (let r = 0; r < rows; r++) {
+          for (let cl = 0; cl < cols; cl++) {
+            const ci = (r * cols + cl) % ledPalette.length;
+            c.fillStyle = ledPalette[ci];
+            c.globalAlpha = 0.55;
+            c.fillRect(ledX + cl * cW + 1, ledY + r * cH + 1, cW - 2, cH - 2);
+            // Reflective glint on each tile
+            c.fillStyle = 'rgba(255,255,255,0.12)';
+            c.fillRect(ledX + cl * cW + 2, ledY + r * cH + 2, (cW - 4) * 0.45, (cH - 4) * 0.35);
+            c.globalAlpha = 1;
+          }
+        }
+      }
 
       // JazzClub poster on back wall
       const pw = Math.min(w * 0.42, 480);
@@ -2395,6 +2559,16 @@ export const scenes: Record<string, Scene> = {
     // Skin tones for variety
     const skinTones = ['#FFDAB9', '#D2A679', '#8D5524', '#C68642', '#F1C27D', '#E0AC69'];
 
+    // Pre-computed disco ball reflection dots (created once at IIFE scope)
+    const discoDots = Array.from({ length: 36 }, (_, i) => ({
+      angle:    (i / 36) * Math.PI * 2,
+      radius:   0.15 + ((i * 0.137) % 0.7),
+      speed:    0.00025 + (i % 7) * 0.00006,
+      colorIdx: i % 4,
+      size:     1.5 + (i % 4) * 0.8,
+    }));
+    const discoDotColors = ['255,255,255', '120,180,255', '40,230,230', '255,100,240'];
+
     return {
     name: '🎺 Eldad & Tamir Live',
     playerStart: (w, h) => ({ x: 50, y: h * 0.7 }),
@@ -2420,6 +2594,21 @@ export const scenes: Record<string, Scene> = {
 
       const barY = h * 0.56;
 
+      // --- Disco ball reflections (G) ---
+      {
+        const dbx = w * 0.5, dby = h * 0.07;
+        for (const dot of discoDots) {
+          const angle = dot.angle + time * dot.speed;
+          const sceneR = dot.radius * w * 0.44;
+          const dx = dbx + Math.cos(angle) * sceneR;
+          const dy = dby + 20 + Math.abs(Math.sin(angle * 0.5)) * sceneR * 0.5;
+          const op = 0.3 + Math.abs(Math.sin(angle * 2.5 + time * 0.0008)) * 0.45;
+          if (dy < 0 || dy > h || dx < 0 || dx > w) continue;
+          ctx.fillStyle = `rgba(${discoDotColors[dot.colorIdx]},${op})`;
+          ctx.beginPath(); ctx.arc(dx, dy, dot.size, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
       // --- Spotlight beams (sweeping) ---
       const beamDefs = [
         { anchor: 0.30, range: 0.10, freq: 0.0007, phase: 0.0 },
@@ -2444,6 +2633,81 @@ export const scenes: Record<string, Scene> = {
         ctx.fill();
         ctx.globalAlpha = 1;
         ctx.restore();
+      }
+
+      // --- Extra moving-head beams from sides (H) ---
+      {
+        const extraBeams = [
+          { anchorX: w * 0.04, freq: 0.0011, phase: 0.5 },
+          { anchorX: w * 0.96, freq: 0.0008, phase: 2.2 },
+        ];
+        for (const eb of extraBeams) {
+          const targetX = w * 0.5 + Math.sin(time * eb.freq + eb.phase) * w * 0.28;
+          ctx.save();
+          ctx.globalAlpha = 0.25;
+          ctx.strokeStyle = 'rgba(255,180,80,0.8)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(eb.anchorX, h * 0.04);
+          ctx.lineTo(targetX, h * 0.75);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.restore();
+        }
+      }
+
+      // --- Lens flares when beams sweep near center (I) ---
+      {
+        const beamDefsForFlare = [
+          { anchor: 0.30, range: 0.10, freq: 0.0007, phase: 0.0 },
+          { anchor: 0.50, range: 0.08, freq: 0.0005, phase: 1.8 },
+          { anchor: 0.70, range: 0.10, freq: 0.0009, phase: 3.5 },
+        ];
+        for (const bd of beamDefsForFlare) {
+          const bx = w * (bd.anchor + bd.range * Math.sin(time * bd.freq + bd.phase));
+          const dist = Math.abs(bx - w * 0.5) / (w * 0.5);
+          if (dist < 0.3) {
+            const flareOp = (0.3 - dist) / 0.3 * 0.55;
+            ctx.save();
+            ctx.globalAlpha = flareOp;
+            ctx.strokeStyle = '#ffe080';
+            ctx.lineWidth = 1;
+            ctx.translate(bx, h * 0.04);
+            for (let l = 0; l < 6; l++) {
+              const la = l * Math.PI / 3;
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.lineTo(Math.cos(la) * 16, Math.sin(la) * 16);
+              ctx.stroke();
+            }
+            ctx.fillStyle = 'rgba(255,240,180,0.6)';
+            ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          }
+        }
+      }
+
+      // --- Stage fog puffs drifting at floor level (J) ---
+      {
+        for (let f = 0; f < 2; f++) {
+          const speed = f === 0 ? 0.009 : 0.006;
+          const fogCx = ((time * speed + f * w * 0.6) % (w * 1.6)) - w * 0.3;
+          const fogY  = h * 0.70;
+          const fogG  = ctx.createRadialGradient(fogCx, fogY, 0, fogCx, fogY, w * 0.32);
+          fogG.addColorStop(0, 'rgba(180,120,60,0.07)');
+          fogG.addColorStop(1, 'transparent');
+          ctx.fillStyle = fogG;
+          ctx.fillRect(0, fogY - h * 0.06, w, h * 0.12);
+        }
+      }
+
+      // --- Atmospheric dust motes (K) ---
+      for (let m = 0; m < 20; m++) {
+        const mx = w * (0.05 + (m * 0.047) % 0.9) + Math.sin(time * 0.0004 + m * 2.1) * 9;
+        const my = h * (0.10 + (m * 0.043) % 0.65) + Math.sin(time * 0.0003 + m * 1.7) * 6;
+        const mop = 0.08 + Math.abs(Math.sin(time * 0.0005 + m * 3)) * 0.06;
+        ctx.fillStyle = `rgba(255,255,255,${mop})`;
+        ctx.beginPath(); ctx.arc(mx, my, 1.5, 0, Math.PI * 2); ctx.fill();
       }
 
       // --- JAZZ neon sign (simpler glow) ---
@@ -2923,6 +3187,92 @@ export const scenes: Record<string, Scene> = {
       }
 
       ctx.restore(); // musicians group
+
+      // --- Animated EQ bars on left wall (M) ---
+      {
+        const eqX  = w * 0.03;
+        const eqY  = h * 0.38;
+        const eqTotalW = w * 0.11;
+        const barW = eqTotalW / 16 * 0.78;
+        const maxH = 40, minH = 4;
+        const eqFreqs  = [0.003,0.004,0.005,0.0035,0.0045,0.006,0.0025,0.0055,
+                          0.003,0.004,0.005,0.0035,0.0045,0.006,0.0025,0.0055];
+        const eqPhases = [0,0.4,0.8,1.2,1.6,2.0,2.4,2.8,3.2,3.6,4.0,4.4,4.8,5.2,5.6,6.0];
+        for (let i = 0; i < 16; i++) {
+          const bx = eqX + i * (eqTotalW / 16);
+          const bh = minH + Math.abs(Math.sin(time * eqFreqs[i] + eqPhases[i])) * (maxH - minH);
+          const t  = bh / maxH;
+          const g  = Math.floor(100 * (1 - t));
+          ctx.fillStyle = `rgba(255,${g},20,0.78)`;
+          ctx.fillRect(bx, eqY - bh, barW, bh);
+        }
+      }
+
+
+      // --- Instrument sparkle FX (O) ---
+      {
+        // Trumpet bell approx world position (scale(2,2) applied, figX=w*0.50, figY=h*0.8-81)
+        const trumpetBellX = w * 0.50 + 55, trumpetBellY = h * 0.8 - 81 - 55;
+        const keyboardKeysX = w * 0.17,     keyboardKeysY = h * 0.8 - 40;
+        for (const [spx, spy] of [[trumpetBellX, trumpetBellY], [keyboardKeysX, keyboardKeysY]] as [number,number][]) {
+          for (let s = 0; s < 5; s++) {
+            const sop = Math.abs(Math.sin(time * 0.008 + s * 1.3)) * 0.7;
+            if (sop < 0.12) continue;
+            const sx = spx + Math.cos(s * Math.PI * 2 / 5) * 11;
+            const sy = spy + Math.sin(s * Math.PI * 2 / 5) * 9;
+            ctx.save();
+            ctx.globalAlpha = sop;
+            ctx.strokeStyle = '#ffe080';
+            ctx.lineWidth = 1;
+            ctx.translate(sx, sy);
+            ctx.rotate(time * 0.002 + s * 0.4);
+            for (let l = 0; l < 4; l++) {
+              const la = l * Math.PI / 2;
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.lineTo(Math.cos(la) * 5, Math.sin(la) * 5);
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+        }
+      }
+
+      // --- Foreground audience silhouettes (L) ---
+      {
+        const silX   = [0.05, 0.14, 0.23, 0.33, 0.45, 0.58, 0.70, 0.83];
+        const raised = [false, true, false, false, true, false, true, false];
+        ctx.fillStyle = 'rgba(10,5,2,0.88)';
+        for (let i = 0; i < silX.length; i++) {
+          const sx = w * silX[i];
+          const sy = h * 0.88;
+          const fH = h * 0.12;
+          // Head
+          ctx.beginPath(); ctx.arc(sx, sy, fH * 0.18, 0, Math.PI * 2); ctx.fill();
+          // Body
+          ctx.beginPath();
+          ctx.roundRect(sx - fH * 0.18, sy + fH * 0.15, fH * 0.36, fH * 0.72, 3);
+          ctx.fill();
+          if (raised[i]) {
+            // Raised arm
+            ctx.beginPath();
+            ctx.moveTo(sx - fH * 0.18, sy + fH * 0.22);
+            ctx.lineTo(sx - fH * 0.42, sy - fH * 0.08);
+            ctx.lineTo(sx - fH * 0.34, sy - fH * 0.08);
+            ctx.lineTo(sx - fH * 0.12, sy + fH * 0.24);
+            ctx.fill();
+          }
+        }
+      }
+
+      // --- Cinematic vignette (P — drawn last) ---
+      {
+        const vgG = ctx.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, w * 0.75);
+        vgG.addColorStop(0, 'transparent');
+        vgG.addColorStop(1, 'rgba(0,0,0,0.55)');
+        ctx.fillStyle = vgG;
+        ctx.fillRect(0, 0, w, h);
+      }
     },
     platforms: (w, h) => [
       { x: w * 0.05, y: h * 0.8, width: w * 0.28, height: 20 },
@@ -3277,6 +3627,14 @@ export const scenes: Record<string, Scene> = {
         ctx.restore();
       }
 
+      // ── EXTRA OBJECTS (editor-added from library) ──────────────────────
+      for (const obj of sceneExtras("concert")) {
+        if (!obj.src || !(obj.wFrac > 0) || !(obj.hFrac > 0)) continue;
+        const img = getEditorImage(obj.src);
+        if (img.complete && img.naturalWidth > 0)
+          ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
+      }
+
     },
     memories: (w, h) => [
       { x: w * 0.50, y: h * 0.8 - 65 - 62, type: 'future',   videoSrc: '/EldadTamirFuturePerforming.mp4', description: 'A future performance — the show must go on' },
@@ -3628,10 +3986,10 @@ export const scenes: Record<string, Scene> = {
       ['vend',    '/Tokyo_neo/r_2032.png'],
       ['robocat',   '/Tokyo_neo/r_2023.png'],
       ['neonSign',  '/Tokyo_neo/r_2089.png'],
-      ['pikachu',   '/pikachu-f.png'],
-      ['neo20',     '/Tokyo_neo/r_2020.png'],
-      ['snorlax',   '/snorlax.png'],
-      ['charizard', '/charizard.gif'],
+      ['pikachu',    '/pikachu-f.png'],
+      ['neo20',      '/Tokyo_neo/r_2020.png'],
+
+      ['screamtail', 'https://img.pokemondb.net/sprites/scarlet-violet/normal/scream-tail.png'],
     ] as [string, string][]) { const img = new Image(); img.src = s; I[k] = img; }
     return {
     name: '🗼 Tokyo Sunset',
@@ -3812,49 +4170,43 @@ export const scenes: Record<string, Scene> = {
           di(I.pikachu, pikX - p.dw/2, pikY, p.dw, p.dh);
         } }
 
-      // ── 19. SNORLAX ────────────────────────────────────────────────────
-      { const p = ep('snorlax', w*0.803, h*0.376, h*0.130, h*0.130);
-        if (!p.hidden) di(I.snorlax, p.x, p.y, p.dw, p.dh); }
 
-      // ── 20. CHARIZARD (flying) ─────────────────────────────────────────
-      { const p = ep('charizard', w*0.907, h*0.212, h*0.122, h*0.122);
+      // ── 20b. SCREAM TAIL ────────────────────────────────────────────────
+      { const p = ep('scream_tail', w*0.190, h*0.530, h*0.110, h*0.110);
         if (!p.hidden) {
-          const flyX = p.x + Math.sin(time * 0.0007) * w * 0.012;
-          const flyY = p.y + Math.sin(time * 0.0018) * h * 0.022;
-          di(I.charizard, flyX, flyY, p.dw, p.dh);
+          const floatY = p.y + Math.sin(time * 0.0014) * h * 0.018;
+          di(I.screamtail, p.x, floatY, p.dw, p.dh);
         } }
 
-      // ── 19. EXTRA OBJECTS (editor-added from library) ──────────────────
-      for (const obj of extraObjects) {
+      // ── 21. EXTRA OBJECTS (editor-added from library) ──────────────────
+      for (const obj of sceneExtras("tokyo")) {
+        if (!obj.src || !(obj.wFrac > 0) || !(obj.hFrac > 0)) continue;
         const img = getEditorImage(obj.src);
-        if (img.complete && img.naturalWidth > 0) {
+        if (img.complete && img.naturalWidth > 0)
           ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
-        }
       }
 
     },
 
     platforms: (_w, _h) => [],
 
-    drawMemory: (ctx, mem, time) => {
-      const pulse = Math.sin(time * 0.003) * 5;
-      for (let i = 5; i > 0; i--) {
-        ctx.strokeStyle = `rgba(204,34,0,${0.15 + i * 0.1})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(mem.x, mem.y, 15 + i * 6 + pulse, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      for (let i = 0; i < 6; i++) {
-        const angle = time * 0.0025 + (i * Math.PI * 2) / 6;
-        const orbitR = 38 + pulse;
-        const mpx = mem.x + Math.cos(angle) * orbitR;
-        const mpy = mem.y + Math.sin(angle) * orbitR;
-        ctx.fillStyle = 'rgba(255,150,185,0.9)';
-        ctx.beginPath();
-        ctx.ellipse(mpx, mpy, 4, 3, angle, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    memories: (w, h) => {
+      const mep = (id: string, xf: number, yf: number) => {
+        const pin = editorPins[id];
+        if (pin) return { x: w * pin.xFrac, y: h * pin.yFrac };
+        return { x: w * xf, y: h * yf };
+      };
+      return [
+        { ...mep('pikachu',    0.331, 0.711), type: 'pikachu',    videoSrc: '/EldadSamiri.jpeg', description: '⚡ Pikachu spotted in the neon streets of Tokyo' },
+        { ...mep('snorlax',    0.803, 0.376), type: 'snorlax',    videoSrc: '/Meiji.jpeg',        description: '💤 Snorlax blocking the path — as always' },
+        { ...mep('charizard',  0.908, 0.200), type: 'charizard',  videoSrc: '/EldadSamiri.jpeg', description: '🔥 Charizard soaring over the Tokyo skyline' },
+        { ...mep('scream_tail',  0.190, 0.530), type: 'scream_tail',  videoSrc: '/Meiji.jpeg',           description: '🌸 Scream Tail echoing through the city' },
+        { ...mep('shibuya',      0.500, 0.750), type: 'shibuya',      videoSrc: '/ShibuyaCrossing.mp4',  description: '🚶 Shibuya Crossing — the world\'s busiest intersection' },
+      ];
     },
+
+    // No visual indicator — the Pokemon sprites are the interaction cue.
+    // Proximity to each Pokemon triggers the memory viewer automatically.
+    drawMemory: (_ctx, _mem, _time) => {},
   }; })(),
 };

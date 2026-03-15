@@ -31,6 +31,7 @@ export function createPlayer(): Player {
     trick: null,
     trickTimer: 0,
     trickRotation: 0,
+    flying: false,
   };
 }
 
@@ -68,34 +69,46 @@ export function updatePlayer(
     }
   }
 
-  // Gravity
-  player.velocityY += player.gravity;
-  player.x += player.velocityX;
-  player.y += player.velocityY;
+  if (player.flying) {
+    // Flight mode — no gravity, full directional control
+    player.velocityY = 0;
+    if (keys['ArrowUp'] || keys[' ']) player.velocityY = -player.speed;
+    if (keys['ArrowDown'])            player.velocityY =  player.speed;
+    player.x += player.velocityX;
+    player.y += player.velocityY;
+    player.onGround = false;
+    // Clamp vertically so player can't fly off screen
+    player.y = Math.max(0, Math.min(canvasH - player.height, player.y));
+  } else {
+    // Normal physics
+    player.velocityY += player.gravity;
+    player.x += player.velocityX;
+    player.y += player.velocityY;
 
-  // Platform collision
-  player.onGround = false;
-  for (const p of platforms) {
-    if (
-      player.x + player.width > p.x &&
-      player.x < p.x + p.width &&
-      player.y + player.height > p.y &&
-      player.y + player.height < p.y + 20 &&
-      player.velocityY >= 0
-    ) {
-      player.y = p.y - player.height;
+    // Platform collision
+    player.onGround = false;
+    for (const p of platforms) {
+      if (
+        player.x + player.width > p.x &&
+        player.x < p.x + p.width &&
+        player.y + player.height > p.y &&
+        player.y + player.height < p.y + 20 &&
+        player.velocityY >= 0
+      ) {
+        player.y = p.y - player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+        player.jumpsRemaining = player.maxJumps;
+      }
+    }
+
+    // Ground collision
+    if (player.y + player.height > canvasH) {
+      player.y = canvasH - player.height;
       player.velocityY = 0;
       player.onGround = true;
       player.jumpsRemaining = player.maxJumps;
     }
-  }
-
-  // Ground collision
-  if (player.y + player.height > canvasH) {
-    player.y = canvasH - player.height;
-    player.velocityY = 0;
-    player.onGround = true;
-    player.jumpsRemaining = player.maxJumps;
   }
 
   // Boundaries

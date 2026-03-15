@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   setPin, setEditorActive, setHidden, editorPins,
-  addExtraObject, removeExtraObject, updateExtraObject, extraObjects,
+  addExtraObject, removeExtraObject, updateExtraObject, sceneExtras,
 } from '@/game/editorState';
 
 // ── PNG library ────────────────────────────────────────────────────────────────
@@ -28,6 +28,7 @@ const PNG_LIBRARY = [
     '/Trees/birch_3.png', '/Trees/birch_4.png', '/Trees/birch_5.png',
     '/Trees/fir_tree_1.png', '/Trees/fir_tree_2.png', '/Trees/fir_tree_3.png', '/Trees/fir_tree_4.png',
   ]},
+  { group: 'Music', items: Array.from({length: 36}, (_, i) => `/music_objects/music_${String(i+1).padStart(2,'0')}.png`) },
   { group: 'Other', items: ['/NakedCastleLogo.png', '/NakedStableLogo.png', '/NakedCastelReal.png', '/JazzClub.png', '/Suite.png', '/Castle.png'] },
 ];
 
@@ -83,9 +84,11 @@ const SCENE_PINS: Record<string, PinDef[]> = {
     { id: 'lantern', name: 'Lantern',             color: '#ffaa00', xFrac:  0.586, yFrac:  0.516, wFrac: 0.043, hFrac: 0.078 },
     { id: 'vend',    name: 'Vending Machine',     color: '#44ffcc', xFrac:  0.522, yFrac:  0.321, wFrac: 0.132, hFrac: 0.160, hidden: true },
     { id: 'robocat', name: 'Robot Cat',           color: '#44ccff', xFrac:  0.877, yFrac:  0.422, wFrac: 0.050, hFrac: 0.061, hidden: true },
-    { id: 'pikachu', name: 'Pikachu',             color: '#ffee00', xFrac:  0.331, yFrac:  0.711, wFrac: 0.085, hFrac: 0.085 },
-    { id: 'snorlax',   name: 'Snorlax',           color: '#8899cc', xFrac:  0.803, yFrac:  0.376, wFrac: 0.130, hFrac: 0.130 },
-    { id: 'charizard', name: 'Charizard',         color: '#ff6600', xFrac:  0.907, yFrac:  0.212, wFrac: 0.122, hFrac: 0.122 },
+    { id: 'pikachu',    name: 'Pikachu',            color: '#ffee00', xFrac:  0.331, yFrac:  0.711, wFrac: 0.085, hFrac: 0.085 },
+    { id: 'snorlax',    name: 'Snorlax',            color: '#8899cc', xFrac:  0.803, yFrac:  0.376, wFrac: 0.130, hFrac: 0.130, hidden: true },
+    { id: 'charizard',  name: 'Charizard',          color: '#ff6600', xFrac:  0.908, yFrac:  0.200, wFrac: 0.131, hFrac: 0.131, hidden: true },
+    { id: 'scream_tail',name: 'Scream Tail',        color: '#ff88cc', xFrac:  0.190, yFrac:  0.530, wFrac: 0.110, hFrac: 0.110 },
+    { id: 'shibuya',    name: '🚶 Shibuya Crossing', color: '#00ccff', xFrac:  0.500, yFrac:  0.750, wFrac: 0.040, hFrac: 0.070 },
   ],
 };
 
@@ -120,7 +123,7 @@ export default function SceneEditorOverlay({ sceneKey, canvasW, canvasH, onDisab
       hidden: editorPins[d.id]?.hidden ?? d.hidden ?? false,
       isExtra: false,
     })),
-    ...extraObjects.map(obj => ({
+    ...sceneExtras(sceneKey).map(obj => ({
       id: obj.id,
       name: fname(obj.src),
       color: '#ffffff',
@@ -266,7 +269,7 @@ export default function SceneEditorOverlay({ sceneKey, canvasW, canvasH, onDisab
   const addFromLibrary = (src: string) => {
     const id = `extra_${extraCounter.current++}`;
     const obj: ObjEntry = { id, name: fname(src), color: '#ffffff', xFrac: 0.4, yFrac: 0.3, wFrac: 0.20, hFrac: 0.20, isExtra: true, src };
-    addExtraObject({ id, src, xFrac: obj.xFrac, yFrac: obj.yFrac, wFrac: obj.wFrac, hFrac: obj.hFrac });
+    addExtraObject({ id, src, scene: sceneKey, xFrac: obj.xFrac, yFrac: obj.yFrac, wFrac: obj.wFrac, hFrac: obj.hFrac });
     setObjects(prev => [...prev, obj]);
     setSelectedId(id);
     setLibraryOpen(false);

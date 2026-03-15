@@ -5,6 +5,7 @@ interface ControlsOverlayProps {
 const controls = [
   { key: '←→', label: 'Move' },
   { key: 'SPACE', label: 'Jump (3×)' },
+  { key: 'F', label: 'Fly ↑↓' },
   { key: 'ENTER', label: 'Grab Memory' },
   { key: 'ESC', label: 'Menu' },
 ];
