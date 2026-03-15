@@ -39,6 +39,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
   const memoryAnimRef = useRef<Map<number, { x: number; y: number; dir: number; mirror: number; flipping: boolean; flipAngle: number }>>(new Map());
   const mouseRef = useRef<{ x: number; y: number } | null>(null);
   const showViewerRef = useRef(false);
+  const cinematicRef = useRef<{ startTime: number; musicStarted: boolean } | null>(null);
 
   const toggleMusic = () => {
     const audio = audioRef.current;
@@ -47,12 +48,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       audio.pause();
       setMusicPlaying(false);
     } else {
-      // Update UI immediately so the button always responds visually
-      setMusicPlaying(true);
-      audio.play().catch((err) => {
-        console.error('Audio play failed:', err);
-        setMusicPlaying(false);
-      });
+      cinematicRef.current = { startTime: performance.now(), musicStarted: false };
     }
   };
 
@@ -76,6 +72,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
     collectedRef.current = new Set();
     memoryAnimRef.current = new Map();
     showViewerRef.current = false;
+    cinematicRef.current = null;
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -235,7 +232,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       }
 
       // Player
-      if (!showViewerRef.current) {
+      if (!showViewerRef.current && !cinematicRef.current) {
         updatePlayer(player, state.keys, platforms, w, h);
         updateTrick(player);
       }
@@ -364,6 +361,64 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
               break;
             }
           }
+        }
+      }
+
+      // Cinematic countdown overlay
+      const cinematic = cinematicRef.current;
+      if (cinematic) {
+        const elapsed = performance.now() - cinematic.startTime;
+
+        // Start music when screen goes fully black
+        if (!cinematic.musicStarted && elapsed >= 600 && audioRef.current) {
+          cinematic.musicStarted = true;
+          audioRef.current.play()
+            .then(() => setMusicPlaying(true))
+            .catch(() => {});
+        }
+
+        let alpha: number;
+        if (elapsed < 600) {
+          alpha = elapsed / 600;
+        } else if (elapsed < 3600) {
+          alpha = 1;
+        } else if (elapsed < 4200) {
+          alpha = 1 - (elapsed - 3600) / 600;
+        } else {
+          cinematicRef.current = null;
+          alpha = 0;
+        }
+
+        if (alpha > 0) {
+          ctx.save();
+          ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+          ctx.fillRect(0, 0, w, h);
+
+          if (elapsed >= 600 && elapsed < 3600) {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Subtitle
+            ctx.font = '20px "Press Start 2P", monospace';
+            ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.fillText('The show starts in:', w / 2, h / 2 - 70);
+
+            // Countdown digit
+            const countNum = elapsed < 1600 ? '3' : elapsed < 2600 ? '2' : '1';
+            const phaseStart = elapsed < 1600 ? 600 : elapsed < 2600 ? 1600 : 2600;
+            const phaseProgress = (elapsed - phaseStart) / 1000;
+            const scale = 1.3 - phaseProgress * 0.3;
+
+            ctx.save();
+            ctx.translate(w / 2, h / 2 + 30);
+            ctx.scale(scale, scale);
+            ctx.font = 'bold 96px "Press Start 2P", monospace';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.fillText(countNum, 0, 0);
+            ctx.restore();
+          }
+
+          ctx.restore();
         }
       }
 

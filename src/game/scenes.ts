@@ -1482,7 +1482,7 @@ export const scenes: Record<string, Scene> = {
     memories: (w, h) => [
       { x: w * 0.10 + 74, y: h * 0.56 + 26, type: 'pool', videoSrc: '/NakedCastelPool.mp4', description: 'The infinity pool overlooking Moganshan' },
       { x: w * 0.68, y: h * 0.66,           type: 'chalet',  description: 'A cozy wooden retreat tucked in the bamboo hills' },
-      { x: w * 0.52, y: h * 0.80 - 18,      type: 'mg', description: 'The red MG Cyberster — wind in your hair' },
+      { x: w * 0.52, y: h * 0.80 - 18,      type: 'mg', videoSrc: '/EldadMGCar.mp4', description: 'The red MG Cyberster — wind in your hair' },
       { x: w * 0.48, y: h * 0.26,            type: 'castle', videoSrc: '/NakedCastle.mp4', description: 'Naked Castle — Moganshan\'s crown jewel since 1910' },
     ],
     drawMemory: (ctx, mem, time) => {
@@ -2115,7 +2115,7 @@ export const scenes: Record<string, Scene> = {
     name: '🎺 Eldad & Tamir Live',
     playerStart: (w, h) => ({ x: 50, y: h * 0.7 }),
     playerPhysics: {
-      jumpPower: 12,
+      jumpPower: 16,
       gravity: 0.85,
     },
     background: (ctx, w, h, time) => {
@@ -3100,6 +3100,7 @@ export const scenes: Record<string, Scene> = {
     },
     memories: (w, h) => [
       { x: w * 0.50, y: h * 0.8 - 65 - 62, type: 'future',   videoSrc: '/EldadTamirFuturePerforming.mp4', description: 'A future performance — the show must go on' },
+      { x: w * 0.26, y: h * 0.8 - 80,      type: 'jasons',   videoSrc: '/EldadTamirAtJasons.mp4',         description: "Eldad & Tamir at Jason's" },
     ],
     drawMemory: (ctx, mem, time) => {
       const mx = mem.x;
@@ -3242,6 +3243,121 @@ export const scenes: Record<string, Scene> = {
       }
 
       ctx.restore();
+    },
+    memory: (_w, h) => ({
+      x: _w * 0.5,
+      y: h * 0.56 - 200,
+      type: 'portal',
+      description: 'Jazz nights echoing across the world',
+    }),
+    drawMemory: (ctx, mem, time) => {
+      if (mem.type === 'jasons') {
+        // ── JASON'S MEMORY — glowing vintage camera ───────────────
+        const bob = Math.sin(time * 0.002) * 4;
+        const pulse = 0.7 + Math.sin(time * 0.0025) * 0.3;
+        ctx.save();
+        ctx.translate(mem.x, mem.y + bob);
+
+        // Soft amber halo
+        const halo = ctx.createRadialGradient(0, 0, 4, 0, 0, 52);
+        halo.addColorStop(0, `rgba(255,180,60,${0.35 * pulse})`);
+        halo.addColorStop(1, 'rgba(255,140,20,0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(0, 0, 52, 0, Math.PI * 2); ctx.fill();
+
+        // Camera body
+        ctx.save();
+        ctx.shadowColor = `rgba(255,180,60,${0.9 * pulse})`;
+        ctx.shadowBlur = 14 + pulse * 8;
+        const bodyG = ctx.createLinearGradient(-22, -14, 22, 14);
+        bodyG.addColorStop(0, '#5a3a10'); bodyG.addColorStop(0.5, '#8a5c18'); bodyG.addColorStop(1, '#4a2c08');
+        ctx.fillStyle = bodyG;
+        ctx.beginPath(); ctx.roundRect(-22, -14, 44, 28, 4); ctx.fill();
+        ctx.restore();
+
+        // Lens barrel
+        ctx.save();
+        ctx.shadowColor = `rgba(255,180,60,${0.7 * pulse})`;
+        ctx.shadowBlur = 10;
+        const lensG = ctx.createRadialGradient(-3, -3, 2, 0, 0, 11);
+        lensG.addColorStop(0, '#3a4a5a'); lensG.addColorStop(0.5, '#1a2a3a'); lensG.addColorStop(1, '#0a1218');
+        ctx.fillStyle = '#6a5020';
+        ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = lensG;
+        ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+        // Lens glint
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath(); ctx.ellipse(-3, -3, 4, 2.5, -0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+        // Viewfinder bump (top)
+        ctx.fillStyle = '#6a4a18';
+        ctx.beginPath(); ctx.roundRect(8, -20, 10, 8, 2); ctx.fill();
+
+        // Film-strip sprocket holes (left & right sides)
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath(); ctx.roundRect(-20 + i * 0, -10 + i * 8, 4, 4, 1); ctx.fill();
+          ctx.beginPath(); ctx.roundRect(16,          -10 + i * 8, 4, 4, 1); ctx.fill();
+        }
+
+        // "▶" play label underneath
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(255,210,80,${0.8 + pulse * 0.2})`;
+        ctx.fillText('▶ GRAB', 0, 26);
+
+        ctx.restore();
+        return;
+      }
+
+      const bob = Math.sin(time * 0.0025) * 6;
+      const pulse = 0.7 + Math.sin(time * 0.003) * 0.3;
+      const glow = 20 + Math.sin(time * 0.004) * 10;
+      const y = mem.y + bob;
+
+      // Outer radiant halo
+      const halo = ctx.createRadialGradient(mem.x, y, 5, mem.x, y, 70);
+      halo.addColorStop(0, `rgba(255, 220, 0, ${0.35 * pulse})`);
+      halo.addColorStop(0.5, `rgba(255, 160, 0, ${0.15 * pulse})`);
+      halo.addColorStop(1, 'rgba(255, 100, 0, 0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(mem.x, y, 70, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Big glowing ♪ note
+      ctx.save();
+      ctx.shadowColor = `rgba(255, 220, 0, ${0.9 * pulse})`;
+      ctx.shadowBlur = glow * 2;
+      ctx.font = 'bold 72px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = `rgba(255, 230, 30, ${0.85 + pulse * 0.15})`;
+      ctx.fillText('♪', mem.x, y);
+      // Second pass for extra glow
+      ctx.shadowBlur = glow * 3;
+      ctx.globalAlpha = 0.4 * pulse;
+      ctx.fillText('♪', mem.x, y);
+      ctx.restore();
+
+      // Orbiting small notes
+      for (let s = 0; s < 4; s++) {
+        const angle = time * 0.0018 + (s * Math.PI * 2) / 4;
+        const r = 50 + Math.sin(time * 0.002 + s) * 5;
+        const nx = mem.x + Math.cos(angle) * r;
+        const ny = y + Math.sin(angle) * r * 0.5;
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 220, 0, 0.8)';
+        ctx.shadowBlur = 8;
+        ctx.font = '18px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(255, 220, 80, ${0.6 + Math.sin(time * 0.003 + s) * 0.3})`;
+        ctx.fillText(s % 2 === 0 ? '♩' : '♫', nx, ny);
+        ctx.restore();
+      }
     },
   }; })(),
 
