@@ -61,6 +61,33 @@ export const scenes: Record<string, Scene> = {
         ctx.fill();
       }
 
+      // ── Shared helper: floating memory description label ─────────
+      const drawMemoryLabel = (lx: number, ly: number, emoji: string, title: string, detail: string) => {
+        const pad = 14;
+        ctx.font = 'bold 15px monospace';
+        const tw = ctx.measureText(emoji + ' ' + title).width;
+        ctx.font = '12px monospace';
+        const dw = detail ? ctx.measureText(detail).width : 0;
+        const bw = Math.max(tw, dw) + pad * 2;
+        const bh = detail ? 50 : 30;
+        ctx.fillStyle = 'rgba(0,0,0,0.32)';
+        ctx.beginPath(); ctx.roundRect(lx - bw / 2 + 3, ly + 3, bw, bh, 10); ctx.fill();
+        ctx.fillStyle = 'rgba(8,20,45,0.90)';
+        ctx.beginPath(); ctx.roundRect(lx - bw / 2, ly, bw, bh, 10); ctx.fill();
+        ctx.strokeStyle = 'rgba(180,220,255,0.45)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(lx - bw / 2, ly, bw, bh, 10); ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 15px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(emoji + ' ' + title, lx, ly + 20);
+        if (detail) {
+          ctx.fillStyle = 'rgba(180,220,255,0.95)';
+          ctx.font = '12px monospace';
+          ctx.fillText(detail, lx, ly + 39);
+        }
+        ctx.textAlign = 'left';
+      };
+
       // Main snow slope — big diagonal hill left-top to right-bottom
       const slopeGrad = ctx.createLinearGradient(0, h * 0.2, w, h);
       slopeGrad.addColorStop(0, '#e8f6ff');
@@ -127,6 +154,81 @@ export const scenes: Record<string, Scene> = {
           }
         }
       }
+
+      // ── HAKOBA SKI RESORT sign (drawn after slope so it sits on top of snow) ──
+      const signX = w * 0.06, signY = h * 0.26;
+      // Posts planted in the snow
+      ctx.fillStyle = '#5c3d1a';
+      ctx.fillRect(signX,       signY, 12, 55);
+      ctx.fillRect(signX + 126, signY, 12, 55);
+      // Board (162 wide × 60 tall)
+      ctx.fillStyle = '#7b4f2e';
+      ctx.beginPath(); ctx.roundRect(signX - 8, signY - 56, 162, 60, 7); ctx.fill();
+      ctx.strokeStyle = '#3a1f08'; ctx.lineWidth = 2.5;
+      ctx.strokeRect(signX - 8, signY - 56, 162, 60);
+      // Inner border accent
+      ctx.strokeStyle = 'rgba(255,215,0,0.3)'; ctx.lineWidth = 1;
+      ctx.strokeRect(signX - 2, signY - 50, 150, 48);
+      // "HAKOBA" — large
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('HAKOBA', signX + 73, signY - 25);
+      // "SKI RESORT" — medium below
+      ctx.font = 'bold 14px monospace';
+      ctx.fillStyle = 'rgba(255,235,120,0.95)';
+      ctx.fillText('❄  SKI RESORT  ❄', signX + 73, signY - 7);
+      ctx.textAlign = 'left';
+    
+
+      // ── YAACOV OUGIYA HOTEL ─────────────────────────────────────
+      const hx = w * 0.78, hy = h * 0.72;
+      const hW = 130, hH = 100;
+      // Snow around base
+      ctx.fillStyle = 'rgba(220,240,255,0.5)';
+      ctx.beginPath(); ctx.ellipse(hx + hW/2, hy + hH + 6, 85, 14, 0, 0, Math.PI*2); ctx.fill();
+      // Building body
+      ctx.fillStyle = '#c8b8a0';
+      ctx.fillRect(hx, hy, hW, hH);
+      // Horizontal floor lines
+      ctx.strokeStyle = '#a09080'; ctx.lineWidth = 1;
+      for (let f = 1; f < 3; f++) {
+        ctx.beginPath(); ctx.moveTo(hx, hy + f * (hH/3)); ctx.lineTo(hx + hW, hy + f * (hH/3)); ctx.stroke();
+      }
+      // Flat roof + snow cap
+      ctx.fillStyle = '#6a5040';
+      ctx.fillRect(hx - 4, hy - 9, hW + 8, 11);
+      ctx.fillStyle = 'rgba(225,242,255,0.88)';
+      ctx.fillRect(hx - 4, hy - 12, hW + 8, 6);
+      // Windows — 3 per floor, 3 floors (larger)
+      ctx.fillStyle = 'rgba(255,220,130,0.85)';
+      for (let f = 0; f < 3; f++) {
+        const wy = hy + 8 + f * (hH / 3);
+        for (const wx of [hx + 10, hx + 42, hx + 78]) {
+          ctx.fillRect(wx, wy, 22, 16);
+          ctx.strokeStyle = '#888'; ctx.lineWidth = 0.8; ctx.strokeRect(wx, wy, 22, 16);
+          ctx.beginPath();
+          ctx.moveTo(wx + 11, wy); ctx.lineTo(wx + 11, wy + 16);
+          ctx.moveTo(wx, wy + 8);  ctx.lineTo(wx + 22, wy + 8);
+          ctx.stroke();
+        }
+      }
+      // Front door
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(hx + hW/2 - 11, hy + hH - 28, 22, 28);
+      ctx.beginPath(); ctx.arc(hx + hW/2, hy + hH - 28, 11, Math.PI, 0); ctx.fill();
+      // Sign above door
+      ctx.fillStyle = '#4a2e12';
+      ctx.fillRect(hx + 4, hy - 34, hW - 8, 22);
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('YAACOV OUGIYA', hx + hW/2, hy - 21);
+      ctx.font = '8px monospace';
+      ctx.fillText('HOTEL  ★', hx + hW/2, hy - 10);
+      ctx.textAlign = 'left';
+      // Title label above building
+      drawMemoryLabel(hx + hW/2, hy - 82, '🏨', 'Yaacov Ougiya Hotel', '');
 
       // Wooden coffee shop (bottom-left area, near the slope)
       const cx = w * 0.08;
@@ -220,64 +322,204 @@ export const scenes: Record<string, Scene> = {
       ctx.font = `bold 6px monospace`;
       ctx.fillText('CAFÉ ☕', cx + 17, cy);
 
-      // Two skiers moving slowly from the coffee shop toward the last memory (w*0.87)
+      // ── HOT CHOCO STALL ─────────────────────────────────────────
+      const kcx = w * 0.37, kcy = h * 0.62;
+      // Snow pad
+      ctx.fillStyle = 'rgba(220,240,255,0.55)';
+      ctx.beginPath(); ctx.ellipse(kcx + 35, kcy + 56, 56, 12, 0, 0, Math.PI*2); ctx.fill();
+      // Stall body (2× bigger: 70×50)
+      ctx.fillStyle = '#8a5a2a';
+      ctx.fillRect(kcx, kcy, 70, 50);
+      // Wood planks
+      ctx.strokeStyle = '#5c3518'; ctx.lineWidth = 1.5;
+      for (let pl = 0; pl < 4; pl++) {
+        ctx.beginPath(); ctx.moveTo(kcx, kcy + 10 + pl * 11); ctx.lineTo(kcx + 70, kcy + 10 + pl * 11); ctx.stroke();
+      }
+      // Pointed roof
+      ctx.fillStyle = '#3a1f08';
+      ctx.beginPath();
+      ctx.moveTo(kcx - 8,  kcy);
+      ctx.lineTo(kcx + 35, kcy - 38);
+      ctx.lineTo(kcx + 78, kcy);
+      ctx.fill();
+      // Snow on roof
+      ctx.fillStyle = 'rgba(225,242,255,0.90)';
+      ctx.beginPath();
+      ctx.moveTo(kcx - 8,  kcy); ctx.lineTo(kcx + 35, kcy - 38); ctx.lineTo(kcx + 78, kcy);
+      ctx.lineTo(kcx + 78, kcy - 7); ctx.lineTo(kcx + 35, kcy - 45); ctx.lineTo(kcx - 8, kcy - 7);
+      ctx.fill();
+      // Serving counter shelf
+      ctx.fillStyle = '#5c3518';
+      ctx.fillRect(kcx - 4, kcy + 24, 78, 6);
+      // Serving window (warm glow, bigger)
+      ctx.fillStyle = 'rgba(255,200,80,0.78)';
+      ctx.fillRect(kcx + 10, kcy + 4, 50, 22);
+      ctx.strokeStyle = '#3a1f08'; ctx.lineWidth = 1.5; ctx.strokeRect(kcx + 10, kcy + 4, 50, 22);
+      // Banner sign above window
+      ctx.fillStyle = '#cc6600';
+      ctx.fillRect(kcx + 4, kcy - 12, 62, 14);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('HOT CHOCO ☕', kcx + 35, kcy - 2);
+      ctx.textAlign = 'left';
+      // Steam puffs (animated)
+      for (let s = 0; s < 3; s++) {
+        const puffY = kcy - 8 - s * 14 - (time * 0.018 + s * 6) % 30;
+        ctx.fillStyle = `rgba(255,255,255,${0.4 - s * 0.1})`;
+        ctx.beginPath();
+        ctx.arc(kcx + 25 + s * 12 + Math.sin(time * 0.002 + s) * 4, puffY, 6 + s * 1.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      // Title label above stall
+      drawMemoryLabel(kcx + 35, kcy - 116, '☕', 'Hot Choco Stop', '');
+
+      // ── 6 FRIENDS ON THE SLOPE ──────────────────────────────────
       const skierStartX = cx + 80;
-      const skierEndX = w * 0.87;
-      const skierRange = skierEndX - skierStartX;
-      const skiers = [
-        { speed: 18, phaseOffset: 0,           jacket: '#2980b9', hat: '#1a5276' },
-        { speed: 13, phaseOffset: skierRange * 0.45, jacket: '#8e44ad', hat: '#6c3483' },
+      const skierEndX   = w * 0.87;
+      const skierRange  = skierEndX - skierStartX;
+
+      // Helper: draw name badge above a skier
+      const drawNameBadge = (bx: number, by: number, name: string, isPro: boolean) => {
+        ctx.font = `bold 13px monospace`;
+        const label = isPro ? `⭐ ${name}` : name;
+        const bw = ctx.measureText(label).width + 16;
+        ctx.fillStyle = isPro ? 'rgba(30,15,0,0.88)' : 'rgba(10,20,40,0.82)';
+        ctx.beginPath(); ctx.roundRect(bx - bw / 2, by - 18, bw, 20, 5); ctx.fill();
+        ctx.strokeStyle = isPro ? 'rgba(255,215,0,0.7)' : 'rgba(160,200,255,0.4)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.roundRect(bx - bw / 2, by - 18, bw, 20, 5); ctx.stroke();
+        ctx.fillStyle = isPro ? '#FFD700' : '#ffffff';
+        ctx.font = `bold 13px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(label, bx, by - 3);
+        ctx.textAlign = 'left';
+      };
+
+      // 2 pros (Aner, Amir) + 2 wobbly beginners (May, Jenny)
+      const allFriends = [
+        { speed: 18, phaseOffset: 0,                 jacket: '#2980b9', hat: '#1a5276', pro: true,  name: 'Aner',  jumpOffset: 0     },
+        { speed: 13, phaseOffset: skierRange * 0.45,  jacket: '#8e44ad', hat: '#6c3483', pro: true,  name: 'Amir',  jumpOffset: 2500  },
+        { speed: 9,  phaseOffset: skierRange * 0.20,  jacket: '#e67e22', hat: '#d35400', pro: false, name: 'May',   jumpOffset: 0 },
+        { speed: 11, phaseOffset: skierRange * 0.65,  jacket: '#27ae60', hat: '#1e8449', pro: false, name: 'Jenny', jumpOffset: 0 },
+        { speed: 8,  phaseOffset: skierRange * 0.10,  jacket: '#e74c3c', hat: '#c0392b', pro: false, name: 'Erell', jumpOffset: 0 },
+        { speed: 10, phaseOffset: skierRange * 0.55,  jacket: '#16a085', hat: '#0e6655', pro: false, name: 'Eldad', jumpOffset: 0 },
       ];
-      for (const sk of skiers) {
+
+      for (const sk of allFriends) {
         const x = skierStartX + (time * sk.speed / 1000 + sk.phaseOffset) % skierRange;
         const progress = (x - skierStartX) / skierRange;
         const baseY = cy + 20 + progress * h * 0.04;
+        const wobbleX = sk.pro ? 0 : Math.sin(time * 0.006 + sk.phaseOffset) * 9;
         const bobY = baseY + Math.sin(time * 0.004 + sk.phaseOffset) * 2;
+        const rx = x + wobbleX;
+
+        // Pro jump/flip cycle: one backflip every 5 s
+        const jumpCycle = 5000;
+        const jumpT = sk.pro ? ((time + sk.jumpOffset) % jumpCycle) / jumpCycle : 1;
+        const isJumping = sk.pro && jumpT < 0.28;
+        const jumpHeight = isJumping ? Math.sin((jumpT / 0.28) * Math.PI) * 60 : 0;
+        const flipAngle  = isJumping ? (jumpT / 0.28) * Math.PI * 2 : 0;
+        const drawY = bobY - jumpHeight;
+
         ctx.save();
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+
+        // Shadow on ground (stays at ground level)
+        const shadowScale = isJumping ? Math.max(0.3, 1 - jumpHeight / 60) : 1;
+        ctx.fillStyle = `rgba(0,0,0,${0.12 * shadowScale})`;
         ctx.beginPath();
-        ctx.ellipse(x, bobY + 14, 18, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(rx, bobY + 20, 26 * shadowScale, 5 * shadowScale, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Skis (two planks)
-        ctx.fillStyle = '#c0392b';
-        ctx.fillRect(x - 18, bobY + 10, 15, 3);
-        ctx.fillRect(x + 3,  bobY + 10, 15, 3);
-        // Legs
-        ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(x - 6, bobY - 2, 5, 12);
-        ctx.fillRect(x + 1, bobY - 2, 5, 12);
-        // Body
-        ctx.fillStyle = sk.jacket;
-        ctx.fillRect(x - 7, bobY - 20, 14, 18);
-        // Head
-        ctx.fillStyle = '#FFDAB9';
-        ctx.beginPath();
-        ctx.arc(x, bobY - 25, 7, 0, Math.PI * 2);
-        ctx.fill();
-        // Beanie hat
-        ctx.fillStyle = sk.hat;
-        ctx.beginPath();
-        ctx.arc(x, bobY - 28, 7, Math.PI, 0);
-        ctx.fill();
-        ctx.fillRect(x - 7, bobY - 30, 14, 5);
-        // Ski poles
-        ctx.strokeStyle = '#7f8c8d';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x - 9, bobY - 15);
-        ctx.lineTo(x - 16, bobY + 8);
-        ctx.moveTo(x + 9, bobY - 15);
-        ctx.lineTo(x + 16, bobY + 8);
-        ctx.stroke();
-        // Pole tips
-        ctx.fillStyle = '#7f8c8d';
-        ctx.beginPath();
-        ctx.arc(x - 16, bobY + 8, 2, 0, Math.PI * 2);
-        ctx.arc(x + 16, bobY + 8, 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+
+        if (isJumping) {
+          // Draw entire flipping skier as a rotated group
+          ctx.translate(rx, drawY - 10);
+          ctx.rotate(flipAngle);
+          // Skis
+          ctx.fillStyle = '#c0392b';
+          ctx.fillRect(-26, 25, 22, 4);
+          ctx.fillRect(4,   25, 22, 4);
+          // Legs
+          ctx.fillStyle = '#2c3e50';
+          ctx.fillRect(-9, 8, 7, 18);
+          ctx.fillRect(2,  8, 7, 18);
+          // Body
+          ctx.fillStyle = sk.jacket;
+          ctx.fillRect(-11, -20, 22, 28);
+          // Head
+          ctx.fillStyle = '#FFDAB9';
+          ctx.beginPath(); ctx.arc(0, -28, 11, 0, Math.PI * 2); ctx.fill();
+          // Hat
+          ctx.fillStyle = sk.hat;
+          ctx.beginPath(); ctx.arc(0, -33, 11, Math.PI, 0); ctx.fill();
+          ctx.fillRect(-11, -37, 22, 7);
+          // Arms spread wide during flip
+          ctx.fillStyle = sk.jacket;
+          ctx.fillRect(-26, -16, 15, 7);
+          ctx.fillRect( 11, -16, 15, 7);
+          ctx.restore();
+          // "FLIP!" spark label while airborne
+          ctx.save();
+          ctx.fillStyle = '#FFD700';
+          ctx.font = 'bold 16px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('FLIP! 🤸', rx, drawY - 60);
+          ctx.textAlign = 'left';
+          ctx.restore();
+        } else {
+          // Normal skiing pose
+          // Skis
+          ctx.fillStyle = '#c0392b';
+          ctx.fillRect(rx - 26, drawY + 15, 22, 4);
+          ctx.fillRect(rx + 4,  drawY + 15, 22, 4);
+          // Legs
+          ctx.fillStyle = '#2c3e50';
+          ctx.fillRect(rx - 9,  drawY - 2, 7, 18);
+          ctx.fillRect(rx + 2,  drawY - 2, 7, 18);
+          // Body
+          ctx.fillStyle = sk.jacket;
+          ctx.fillRect(rx - 11, drawY - 30, 22, 28);
+          // Head
+          ctx.fillStyle = '#FFDAB9';
+          ctx.beginPath(); ctx.arc(rx, drawY - 38, 11, 0, Math.PI * 2); ctx.fill();
+          // Hat
+          ctx.fillStyle = sk.hat;
+          ctx.beginPath(); ctx.arc(rx, drawY - 43, 11, Math.PI, 0); ctx.fill();
+          ctx.fillRect(rx - 11, drawY - 47, 22, 7);
+          if (sk.pro) {
+            // Ski poles
+            ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(rx - 13, drawY - 22); ctx.lineTo(rx - 22, drawY + 12);
+            ctx.moveTo(rx + 13, drawY - 22); ctx.lineTo(rx + 22, drawY + 12);
+            ctx.stroke();
+            ctx.fillStyle = '#7f8c8d';
+            ctx.beginPath();
+            ctx.arc(rx - 22, drawY + 12, 3, 0, Math.PI * 2);
+            ctx.arc(rx + 22, drawY + 12, 3, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            // Beginner: flailing arms
+            const flail = Math.sin(time * 0.009 + sk.phaseOffset) * 12;
+            ctx.fillStyle = sk.jacket;
+            ctx.save();
+            ctx.translate(rx - 11, drawY - 18);
+            ctx.rotate((-0.8 - flail * 0.05) * (Math.PI / 180) * 14);
+            ctx.fillRect(-4, -12, 7, 20);
+            ctx.restore();
+            ctx.save();
+            ctx.translate(rx + 11, drawY - 18);
+            ctx.rotate((0.8 + flail * 0.05) * (Math.PI / 180) * 14);
+            ctx.fillRect(-3, -12, 7, 20);
+            ctx.restore();
+          }
+          ctx.restore();
+        }
+
+        // Name badge (always visible, above the figure)
+        drawNameBadge(rx, drawY - 52, sk.name, sk.pro);
       }
+
 
       // Snowflakes with wind drift
       for (let i = 0; i < 280; i++) {
