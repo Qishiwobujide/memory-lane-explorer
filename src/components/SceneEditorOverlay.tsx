@@ -28,7 +28,7 @@ const PNG_LIBRARY = [
     '/Trees/birch_3.png', '/Trees/birch_4.png', '/Trees/birch_5.png',
     '/Trees/fir_tree_1.png', '/Trees/fir_tree_2.png', '/Trees/fir_tree_3.png', '/Trees/fir_tree_4.png',
   ]},
-  { group: 'Other', items: ['/NakedCastleLogo.png', '/NakedStableLogo.png', '/NakedCastelReal.png', '/JazzClub.png', '/Suite.png'] },
+  { group: 'Other', items: ['/NakedCastleLogo.png', '/NakedStableLogo.png', '/NakedCastelReal.png', '/JazzClub.png', '/Suite.png', '/Castle.png'] },
 ];
 
 // ── Scene pin definitions ──────────────────────────────────────────────────────
@@ -39,14 +39,16 @@ interface PinDef {
 }
 const SCENE_PINS: Record<string, PinDef[]> = {
   castle: [
-    { id: 'castle_bldg', name: '🏰 Castle Building', color: '#ffd700', xFrac: 0.375, yFrac: 0.169, wFrac: 0.400, hFrac: 0.300 },
+    { id: 'castle_bldg', name: '🏰 Castle Building', color: '#ffd700', xFrac: 0.380, yFrac: 0.637, wFrac: 0.400, hFrac: 0.300 },
+    { id: 'castle_png',  name: '🏰 Castle.png',      color: '#ffcc44', xFrac: 0.389, yFrac: 0.173, wFrac: 0.200, hFrac: 0.200 },
+    { id: 'nc_logo',     name: '⭕ Naked Castle Logo', color: '#ffdd88', xFrac: 0.433, yFrac: 0.075, wFrac: 0.118, hFrac: 0.118, hidden: true },
     { id: 'mem_castle',  name: '📼 Castle Memory',   color: '#ff8800', xFrac: 0.508, yFrac: 0.290, wFrac: 0.098, hFrac: 0.171 },
     { id: 'mem_mg',      name: '🚗 MG Car Memory',   color: '#44aaff', xFrac: 0.520, yFrac: 0.775, wFrac: 0.040, hFrac: 0.070 },
     { id: 'mem_chalet',  name: '🏠 Chalet Memory',   color: '#88ff44', xFrac: 0.680, yFrac: 0.660, wFrac: 0.040, hFrac: 0.070 },
     { id: 'ct_l0', name: 'Tree L0', color: '#66cc88', xFrac: 0.263, yFrac: 0.063, wFrac: 0.132, hFrac: 0.240, hidden: true },
     { id: 'ct_l1', name: 'Tree L1', color: '#66cc88', xFrac: 0.289, yFrac: 0.460, wFrac: 0.150, hFrac: 0.272, hidden: true },
     { id: 'ct_l2', name: 'Tree L2', color: '#66cc88', xFrac: 0.510, yFrac: 0.102, wFrac: 0.123, hFrac: 0.224, hidden: true },
-    { id: 'ct_l3', name: 'Tree L3', color: '#66cc88', xFrac: 0.439, yFrac: 0.404, wFrac: 0.132, hFrac: 0.240, hidden: true },
+    { id: 'ct_l3', name: 'Tree L3', color: '#66cc88', xFrac: 0.519, yFrac: 0.510, wFrac: 0.132, hFrac: 0.240, hidden: true },
     { id: 'ct_l4', name: 'Tree L4', color: '#88cc66', xFrac: 0.227, yFrac: 0.306, wFrac: 0.114, hFrac: 0.208, hidden: true },
     { id: 'ct_l5', name: 'Tree L5', color: '#88cc66', xFrac: 0.011, yFrac: 0.432, wFrac: 0.123, hFrac: 0.224 },
     { id: 'ct_l6', name: 'Tree L6', color: '#88cc66', xFrac: 0.523, yFrac: 0.441, wFrac: 0.106, hFrac: 0.192, hidden: true },
@@ -108,8 +110,8 @@ const fname = (s: string) => s.split('/').pop()?.replace('.png', '').replace('.g
 
 export default function SceneEditorOverlay({ sceneKey, canvasW, canvasH, onDisable }: Props) {
   const defs = SCENE_PINS[sceneKey] ?? [];
-  const [objects, setObjects] = useState<ObjEntry[]>(() =>
-    defs.map(d => ({
+  const [objects, setObjects] = useState<ObjEntry[]>(() => [
+    ...defs.map(d => ({
       ...d,
       xFrac: editorPins[d.id]?.xFrac ?? d.xFrac,
       yFrac: editorPins[d.id]?.yFrac ?? d.yFrac,
@@ -117,8 +119,20 @@ export default function SceneEditorOverlay({ sceneKey, canvasW, canvasH, onDisab
       hFrac: editorPins[d.id]?.hFrac ?? d.hFrac,
       hidden: editorPins[d.id]?.hidden ?? d.hidden ?? false,
       isExtra: false,
-    }))
-  );
+    })),
+    ...extraObjects.map(obj => ({
+      id: obj.id,
+      name: fname(obj.src),
+      color: '#ffffff',
+      xFrac: obj.xFrac,
+      yFrac: obj.yFrac,
+      wFrac: obj.wFrac,
+      hFrac: obj.hFrac,
+      isExtra: true,
+      src: obj.src,
+      hidden: false,
+    })),
+  ]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [copied, setCopied] = useState(false);

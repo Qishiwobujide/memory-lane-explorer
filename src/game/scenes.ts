@@ -6,6 +6,10 @@ void _setHidden; // imported for side-effect typing only
 const _ncLogo = new Image();
 _ncLogo.src = '/NakedCastleLogo.png';
 
+// Castle.png — baked-in castle image for the Naked Castle scene
+const _castlePng = new Image();
+_castlePng.src = '/Castle.png';
+
 // Pre-load the Naked Stable logo (used above the hilltop chalets)
 const _nsLogo = new Image();
 _nsLogo.src = '/NakedStableLogo.png';
@@ -1006,52 +1010,48 @@ export const scenes: Record<string, Scene> = {
       ctx.arc(tx + tw2 / 2, tBase - 140, 3, 0, Math.PI * 2);
       ctx.fill();
 
-      // ---- NAKED CASTLE LOGO — circular sign floating above the castle ----
-      const logoX = bx + 100;         // centered over castle main body
-      const logoY = by - 62;          // above the rooflines
-      const logoR = 52;               // sign radius
-
-      ctx.save();
-
-      if (_ncLogo.complete && _ncLogo.naturalWidth > 0) {
-        const iw = _ncLogo.naturalWidth;
-        const ih = _ncLogo.naturalHeight;
-        // Scale image so the logo circle (76% of image width) fills our canvas circle exactly
-        const scale = (logoR * 2) / (iw * 0.76);
-        const dw = iw * scale;
-        const dh = ih * scale;
-        // Circle center sits at ~50% x, ~47% y of the image
-        const dx = logoX - iw * 0.50 * scale;
-        const dy = logoY - ih * 0.47 * scale;
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        // Clip to circle so white corners of the PNG are hidden
-        ctx.beginPath();
-        ctx.arc(logoX, logoY, logoR, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(_ncLogo, dx, dy, dw, dh);
-      } else {
-        // Fallback pixel-art version while image loads
-        ctx.fillStyle = '#111111';
-        ctx.beginPath(); ctx.arc(logoX, logoY, logoR, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(logoX, logoY, logoR - 3, 0, Math.PI * 2); ctx.stroke();
-        ctx.lineWidth = 1.2;
-        ctx.beginPath(); ctx.arc(logoX, logoY, logoR - 10, 0, Math.PI * 2); ctx.stroke();
-        ctx.font = 'italic 10px Georgia, serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('naked', logoX, logoY - 6);
-        ctx.font = 'bold 15px Arial, sans-serif';
-        ctx.fillText('CASTLE', logoX, logoY + 10);
-        ctx.font = '11px Arial, sans-serif';
-        ctx.fillText('裸心堡', logoX, logoY + 26);
-        ctx.textAlign = 'left';
+      // ---- CASTLE.PNG IMAGE ----
+      {
+        const p = epTree('castle_png', w * 0.389, h * 0.173, h * 0.200, h * 0.200);
+        if (!p.hidden && _castlePng.complete && _castlePng.naturalWidth > 0) {
+          ctx.drawImage(_castlePng, p.x, p.y, p.dw, p.dh);
+        }
       }
 
-      ctx.restore();
+      // ---- NAKED CASTLE LOGO (circle-clipped, same style as Naked Stable Logo) ----
+      {
+        const p = epTree('nc_logo', w * 0.433, h * 0.075, h * 0.118, h * 0.118);
+        // Always draw at baked position if hidden; use pin position when editor un-hides it
+        const ncLogoX = p.hidden ? w * 0.433 + h * 0.059 : p.x + p.dw / 2;
+        const ncLogoY = p.hidden ? h * 0.075 + h * 0.059 : p.y + p.dh / 2;
+        const ncLogoR = p.hidden ? h * 0.059 : p.dw / 2;
+        // Glow ring
+        ctx.save();
+        ctx.shadowColor = 'rgba(255,255,255,0.5)';
+        ctx.shadowBlur = 18;
+        ctx.strokeStyle = 'rgba(255,255,255,0.0)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(ncLogoX, ncLogoY, ncLogoR, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        // Circle-clipped logo
+        ctx.save();
+        if (_ncLogo.complete && _ncLogo.naturalWidth > 0) {
+          const iw = _ncLogo.naturalWidth;
+          const ih = _ncLogo.naturalHeight;
+          const scale = (ncLogoR * 2) / (iw * 0.76);
+          const dw = iw * scale;
+          const dh = ih * scale;
+          const dx = ncLogoX - iw * 0.50 * scale;
+          const dy = ncLogoY - ih * 0.47 * scale;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.beginPath();
+          ctx.arc(ncLogoX, ncLogoY, ncLogoR, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(_ncLogo, dx, dy, dw, dh);
+        }
+        ctx.restore();
+      }
 
       // ---- INFINITY POOL ON THE HILLSIDE ----
       const px = w * 0.10;
@@ -1719,6 +1719,14 @@ export const scenes: Record<string, Scene> = {
       for (const [fx, fy, col, sz] of flowerBeds) {
         drawFlower(fx, fy, col, sz);
       }
+
+      // ── EXTRA OBJECTS (editor-added from library) ──────────────────────
+      for (const obj of extraObjects) {
+        const img = getEditorImage(obj.src);
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
+        }
+      }
     },
     platforms: (w, h) => [
       // Ground — stone road, full width base
@@ -2059,6 +2067,14 @@ export const scenes: Record<string, Scene> = {
   concert: (() => {
     const bgImg = new Image();
     bgImg.src = '/JazzClub.png';
+
+    // Bar patron sprites
+    const girlSprites = [
+      { img: new Image(), frames: 9,  src: '/girl1_Idle.png' },
+      { img: new Image(), frames: 12, src: '/girl2_walk.png' },
+      { img: new Image(), frames: 3,  src: '/girl3_Protection.png' },
+    ];
+    girlSprites.forEach(s => { s.img.src = s.src; });
 
     // Pre-baked offscreen canvas for static bar elements
     let staticCache: OffscreenCanvas | null = null;
@@ -2441,152 +2457,48 @@ export const scenes: Record<string, Scene> = {
       ctx.fillText('JAZZ', w * 0.5 - jw / 2, barY - 70);
       ctx.restore();
 
-      // --- Crowd at the bar (13 patrons) ---
-      const fans = [
-        { pos: 0.06, skin: 0, hair: '#1a1a1a', shirt: '#2c3e50', type: 'short' },
-        { pos: 0.12, skin: 1, hair: '#8b4513', shirt: '#8b0000', type: 'long' },
-        { pos: 0.19, skin: 2, hair: '#1a1a1a', shirt: '#2980b9', type: 'short' },
-        { pos: 0.26, skin: 3, hair: '#654321', shirt: '#1a6b3a', type: 'bald' },
-        { pos: 0.33, skin: 4, hair: '#daa520', shirt: '#6a2a6a', type: 'long' },
-        { pos: 0.40, skin: 0, hair: '#d35400', shirt: '#34495e', type: 'short' },
-        { pos: 0.48, skin: 5, hair: '#1a1a1a', shirt: '#c0392b', type: 'short' },
-        { pos: 0.56, skin: 1, hair: '#8b0000', shirt: '#1a4a7a', type: 'bald' },
-        { pos: 0.63, skin: 2, hair: '#f4a460', shirt: '#0a6a5a', type: 'long' },
-        { pos: 0.70, skin: 3, hair: '#1a1a1a', shirt: '#b86a08', type: 'short' },
-        { pos: 0.77, skin: 4, hair: '#654321', shirt: '#5a5a5a', type: 'short' },
-        { pos: 0.84, skin: 0, hair: '#daa520', shirt: '#8b0000', type: 'long' },
-        { pos: 0.91, skin: 5, hair: '#1a1a1a', shirt: '#2c3e50', type: 'short' },
+      // --- Crowd at the bar — dancing & cheering girls ---
+      const patronPositions = [
+        0.06, 0.12, 0.19, 0.26, 0.33, 0.40, 0.48,
+        0.56, 0.63, 0.70, 0.77, 0.84, 0.91,
       ];
+      const patronSprite  = [0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 2, 0, 1];
+      // Every other girl faces right (mirrored) for variety
+      const patronFlip    = [1,-1, 1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1];
 
-      for (let i = 0; i < fans.length; i++) {
-        const f = fans[i];
-        const fx = w * f.pos;
-        const fy = barY + 4;
-        // Subtle head bob synced to "music"
-        const bob = Math.sin(time * 0.0018 + i * 1.9) * 1.2;
-        const lean = Math.sin(time * 0.001 + i * 2.5) * 2;
+      for (let i = 0; i < patronPositions.length; i++) {
+        const fx   = w * patronPositions[i];
+        const phase = i * 1.9;
+
+        // Gentle dance bob
+        const bounce = Math.sin(time * 0.0022 + phase) * h * 0.012;
+        // Slight sway
+        const sway  = Math.sin(time * 0.0016 + phase) * 2;
+        // Subtle rock
+        const rock  = Math.sin(time * 0.002 + phase) * 0.04;
+
+        const sp = girlSprites[patronSprite[i]];
+        if (!sp.img.complete || sp.img.naturalWidth === 0) continue;
+
+        const frameW   = sp.img.naturalWidth / sp.frames;
+        const frameH   = sp.img.naturalHeight;
+        const sprH     = h * 0.14;
+        const sprW     = sprH * (frameW / frameH);
+        const fps      = 120;
+        const frameIdx = Math.floor(time / fps) % sp.frames;
 
         ctx.save();
-        ctx.translate(fx + lean, fy);
+        ctx.translate(fx + sway, barY + bounce);
 
-        // Shadow on bar
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.beginPath(); ctx.ellipse(0, 0, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
-
-        // Torso
-        ctx.fillStyle = f.shirt;
-        ctx.fillRect(-8, -30, 16, 24);
-        // Shoulder shape
-        ctx.beginPath(); ctx.ellipse(0, -28, 11, 5, 0, Math.PI, 0); ctx.fill();
-
-        // Neck
-        ctx.fillStyle = skinTones[f.skin];
-        ctx.fillRect(-2, -34, 4, 5);
-
-        // Head
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
         ctx.beginPath();
-        ctx.arc(0, -40 + bob, 8, 0, Math.PI * 2);
+        ctx.ellipse(0, 2, sprW * 0.3, 3, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ears
-        ctx.beginPath();
-        ctx.arc(-8, -40 + bob, 2.5, 0, Math.PI * 2);
-        ctx.arc(8, -40 + bob, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Hair
-        ctx.fillStyle = f.hair;
-        if (f.type === 'short') {
-          ctx.beginPath(); ctx.arc(0, -42 + bob, 8, Math.PI, 0); ctx.fill();
-          ctx.fillRect(-8, -44 + bob, 16, 4);
-        } else if (f.type === 'long') {
-          ctx.beginPath(); ctx.arc(0, -42 + bob, 8.5, Math.PI * 0.85, Math.PI * 0.15); ctx.fill();
-          ctx.fillRect(-8, -44 + bob, 16, 4);
-          // Hair draping down sides
-          ctx.fillRect(-9, -42 + bob, 3, 10);
-          ctx.fillRect(6, -42 + bob, 3, 10);
-        }
-        // bald = no hair drawn
-
-        // Eyes (looking toward stage)
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(-3, -41 + bob, 1.8, 0, Math.PI * 2);
-        ctx.arc(3, -41 + bob, 1.8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath();
-        ctx.arc(-2.5, -41 + bob, 1, 0, Math.PI * 2);
-        ctx.arc(3.5, -41 + bob, 1, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Nose
-        ctx.fillStyle = skinTones[f.skin];
-        ctx.beginPath(); ctx.arc(0, -38 + bob, 1.2, 0, Math.PI * 2); ctx.fill();
-
-        // Mouth (slight smile)
-        ctx.strokeStyle = 'rgba(60,20,10,0.5)'; ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(0, -36 + bob, 2.5, 0.1, Math.PI - 0.1);
-        ctx.stroke();
-
-        // Arms resting on bar
-        ctx.fillStyle = f.shirt;
-        ctx.fillRect(-12, -14, 5, 12);
-        ctx.fillRect(7, -14, 5, 12);
-        // Hands on bar
-        ctx.fillStyle = skinTones[f.skin];
-        ctx.beginPath();
-        ctx.arc(-10, -3, 3, 0, Math.PI * 2);
-        ctx.arc(10, -3, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Drinks (varied)
-        if (i % 3 === 0) {
-          // Whiskey glass
-          ctx.fillStyle = 'rgba(160,100,20,0.5)';
-          ctx.fillRect(12, -8, 5, 6);
-          ctx.strokeStyle = 'rgba(200,200,200,0.3)'; ctx.lineWidth = 0.8;
-          ctx.strokeRect(12, -8, 5, 6);
-        } else if (i % 3 === 1) {
-          // Wine glass
-          ctx.strokeStyle = 'rgba(200,200,200,0.4)'; ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.moveTo(-12, -4); ctx.lineTo(-12, -10); ctx.stroke();
-          ctx.fillStyle = 'rgba(120,15,15,0.6)';
-          ctx.beginPath();
-          ctx.moveTo(-15, -10);
-          ctx.quadraticCurveTo(-12, -18, -9, -10);
-          ctx.closePath(); ctx.fill();
-        } else {
-          // Beer glass
-          ctx.fillStyle = 'rgba(200,170,40,0.45)';
-          ctx.fillRect(13, -10, 4, 8);
-          // Foam
-          ctx.fillStyle = 'rgba(255,255,240,0.5)';
-          ctx.fillRect(13, -11, 4, 2);
-        }
-
-        // Raised arm for crowd energy (patrons 1, 4, 7, 10)
-        if (i === 1 || i === 4 || i === 7 || i === 10) {
-          const raiseT = Math.sin(time * 0.0009 + i * 0.9);
-          if (raiseT > 0.6) {
-            const side = (i % 2 === 0) ? 1 : -1;
-            ctx.fillStyle = f.shirt;
-            // Upper arm
-            ctx.save();
-            ctx.translate(side * 10, -20);
-            ctx.rotate(side * -0.8);
-            ctx.fillRect(-3, -16, 5, 16);
-            // Forearm
-            ctx.translate(0, -16);
-            ctx.rotate(side * -0.4);
-            ctx.fillRect(-2, -14, 4, 14);
-            // Hand
-            ctx.fillStyle = skinTones[f.skin];
-            ctx.beginPath(); ctx.arc(0, -16, 3.5, 0, Math.PI * 2); ctx.fill();
-            ctx.restore();
-          }
-        }
+        ctx.rotate(rock);
+        ctx.scale(patronFlip[i], 1);
+        ctx.drawImage(sp.img, frameIdx * frameW, 0, frameW, frameH, -sprW / 2, -sprH, sprW, sprH);
 
         ctx.restore();
       }
@@ -3913,12 +3825,10 @@ export const scenes: Record<string, Scene> = {
         } }
 
       // ── 19. EXTRA OBJECTS (editor-added from library) ──────────────────
-      if (isEditorActive()) {
-        for (const obj of extraObjects) {
-          const img = getEditorImage(obj.src);
-          if (img.complete && img.naturalWidth > 0) {
-            ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
-          }
+      for (const obj of extraObjects) {
+        const img = getEditorImage(obj.src);
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
         }
       }
 
