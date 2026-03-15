@@ -1,4 +1,6 @@
 import { Scene } from './types';
+import { isEditorActive, editorPins, extraObjects, getEditorImage, setHidden as _setHidden } from './editorState';
+void _setHidden; // imported for side-effect typing only
 
 // Pre-load the Naked Castle logo (used in castle scene background)
 const _ncLogo = new Image();
@@ -7,6 +9,16 @@ _ncLogo.src = '/NakedCastleLogo.png';
 // Pre-load the Naked Stable logo (used above the hilltop chalets)
 const _nsLogo = new Image();
 _nsLogo.src = '/NakedStableLogo.png';
+
+// Castle scene — tree sprites
+const castleTreeImgs: HTMLImageElement[] = [
+  'birch_3', 'birch_4', 'birch_5',
+  'fir_tree_1', 'fir_tree_2', 'fir_tree_3', 'fir_tree_4',
+].map(name => {
+  const img = new Image();
+  img.src = `/Trees/${name}.png`;
+  return img;
+});
 
 export const scenes: Record<string, Scene> = {
   japan: {
@@ -676,6 +688,18 @@ export const scenes: Record<string, Scene> = {
     name: '🏰 Naked Castle, Moganshan',
     playerStart: (w, h) => ({ x: 50, y: h * 0.76 }),
     background: (ctx, w, h, time) => {
+      // Editor pin helper — always reads from saved pin so positions persist after editor closes
+      const epTree = (id: string, defX: number, defY: number, defW: number, defH: number) => {
+        const pin = editorPins[id];
+        return {
+          hidden: pin?.hidden ?? false,
+          x:  pin ? w * pin.xFrac : defX,
+          y:  pin ? h * pin.yFrac : defY,
+          dw: (pin?.wFrac != null) ? h * pin.wFrac : defW,
+          dh: (pin?.hFrac != null) ? h * pin.hFrac : defH,
+        };
+      };
+
       // --- Dusk/twilight sky (matches the photo's blue-grey evening tone) ---
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.7);
       skyGrad.addColorStop(0,   '#1c2a3a');
@@ -805,10 +829,10 @@ export const scenes: Record<string, Scene> = {
 
       // -------------------------------------------------------
       // THE CASTLE  — cream stone, dark slate roofs, right tower
-      // Positioned center-right on its hilltop, matching photo
       // -------------------------------------------------------
-      const bx = w * 0.38;   // left edge of castle complex
-      const by = h * 0.16;   // top of tallest element
+      const _cpBldg = epTree('castle_bldg', w * 0.38, h * 0.16, w * 0.40, h * 0.30);
+      const bx = _cpBldg.x;   // left edge of castle complex
+      const by = _cpBldg.y;   // top of tallest element
 
       // Warm ambient glow from all the lit windows
       const glow = ctx.createRadialGradient(bx + 120, by + 110, 0, bx + 120, by + 110, 200);
@@ -1375,51 +1399,47 @@ export const scenes: Record<string, Scene> = {
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(sit2X + 13, sit2Y - 6); ctx.lineTo(sit2X + 16, sit2Y - 13); ctx.stroke();
 
-      // ---- DENSE MIXED FOREST (rounded canopy blobs, like photo) ----
-      const treeColors = ['#1a2e18','#1e3620','#243c22','#1c2e1a','#213818'];
-
-      // Forest helper — draw a dense canopy blob
-      const drawCanopy = (cx2: number, cy2: number, r: number, col: string) => {
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.arc(cx2,     cy2,     r,       0, Math.PI * 2); ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx2 - r * 0.55, cy2 + r * 0.3, r * 0.75, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx2 + r * 0.55, cy2 + r * 0.3, r * 0.75, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx2,     cy2 + r * 0.5,  r * 0.6,  0, Math.PI * 2); ctx.fill();
+      // ---- PNG TREE FOREST ----
+      // [id, xFrac, yFrac, wFrac, hFrac] — top-left position, size in h-fractions
+      let _tIdx = 0;
+      const drawPngTree = (id: string, xf: number, yf: number, wf: number, hf: number) => {
+        const img = castleTreeImgs[_tIdx++ % castleTreeImgs.length];
+        if (!img.complete || img.naturalWidth === 0) return;
+        const p = epTree(id, xf * w, yf * h, wf * h, hf * h);
+        if (p.hidden) return;
+        ctx.drawImage(img, p.x, p.y, p.dw, p.dh);
       };
 
-      // Left forest bank (covers the hillside left of castle)
-      const leftTrees = [
-        [0.02,0.72,28],[0.07,0.68,32],[0.13,0.65,26],[0.19,0.70,30],[0.25,0.67,28],
-        [0.03,0.80,26],[0.09,0.76,30],[0.16,0.74,28],[0.22,0.78,24],[0.28,0.72,26],
-        [0.01,0.88,22],[0.06,0.85,28],[0.12,0.82,24],[0.18,0.86,22],[0.24,0.83,26],
-        [0.30,0.69,24],[0.35,0.73,22],[0.05,0.92,26],[0.14,0.90,22],[0.21,0.92,24],
+      // Left forest bank
+      const leftTrees: [string, number, number, number, number][] = [
+        ['ct_l0', 0.263, 0.063, 0.132, 0.240],
+        ['ct_l1', 0.289, 0.460, 0.150, 0.272],
+        ['ct_l2', 0.510, 0.102, 0.123, 0.224],
+        ['ct_l3', 0.439, 0.404, 0.132, 0.240],
+        ['ct_l4', 0.227, 0.306, 0.114, 0.208],
+        ['ct_l5', 0.016, 0.435, 0.123, 0.224],
+        ['ct_l6', 0.523, 0.441, 0.106, 0.192],
       ];
-      for (const [fx, fy, fr] of leftTrees) {
-        drawCanopy(fx * w, fy * h, fr as number, treeColors[Math.floor((fx * 100) % 5)]);
-      }
+      for (const [id, xf, yf, wf, hf] of leftTrees) drawPngTree(id, xf, yf, wf, hf);
 
       // Right forest bank
-      const rightTrees = [
-        [0.82,0.68,30],[0.87,0.72,26],[0.92,0.66,28],[0.96,0.70,24],[0.99,0.74,20],
-        [0.80,0.76,26],[0.85,0.78,28],[0.90,0.74,24],[0.94,0.78,22],[0.98,0.80,20],
-        [0.83,0.84,24],[0.88,0.82,26],[0.93,0.86,22],[0.97,0.84,20],
+      const rightTrees: [string, number, number, number, number][] = [
+        ['ct_r0', 0.065, 0.174, 0.141, 0.256],
+        ['ct_r1', 0.923, 0.466, 0.090, 0.163],
+        ['ct_r2', 0.561, 0.643, 0.106, 0.192],
+        ['ct_r3', 0.715, 0.177, 0.114, 0.208],
+        ['ct_r4', 0.774, 0.455, 0.100, 0.181],
+        ['ct_r5', 0.297, 0.465, 0.097, 0.176],
       ];
-      for (const [fx, fy, fr] of rightTrees) {
-        drawCanopy(fx * w, fy * h, fr as number, treeColors[Math.floor((fx * 100) % 5)]);
-      }
+      for (const [id, xf, yf, wf, hf] of rightTrees) drawPngTree(id, xf, yf, wf, hf);
 
-      // Forest behind/around the castle base
-      const behindTrees = [
-        [0.36,0.62,18],[0.40,0.60,16],[0.72,0.60,20],[0.76,0.62,18],[0.79,0.65,16],
-        [0.34,0.70,22],[0.42,0.65,18],[0.70,0.66,18],[0.74,0.68,20],
+      // Trees behind/around the castle base
+      const behindTrees: [string, number, number, number, number][] = [
+        ['ct_b0', 0.533, 0.224, 0.079, 0.144],
+        ['ct_b1', 0.832, 0.310, 0.088, 0.160],
+        ['ct_b2', 0.604, 0.502, 0.075, 0.136],
       ];
-      for (const [fx, fy, fr] of behindTrees) {
-        drawCanopy(fx * w, fy * h, fr as number, treeColors[Math.floor((fx * 100) % 5)]);
-      }
+      for (const [id, xf, yf, wf, hf] of behindTrees) drawPngTree(id, xf, yf, wf, hf);
 
       // Ground — dark mossy hillside
       const groundGrad = ctx.createLinearGradient(0, h * 0.80, 0, h);
@@ -1721,12 +1741,18 @@ export const scenes: Record<string, Scene> = {
       { x: w * 0.72, y: h * 0.74,  width: w * 0.13, height: 16 }, // hill foot right
     ],
     drawPlatforms: () => {},
-    memories: (w, h) => [
-      { x: w * 0.10 + 74, y: h * 0.56 + 26, type: 'pool', videoSrc: '/NakedCastelPool.mp4', description: 'The infinity pool overlooking Moganshan' },
-      { x: w * 0.68, y: h * 0.66,           type: 'chalet',  description: 'A cozy wooden retreat tucked in the bamboo hills' },
-      { x: w * 0.52, y: h * 0.80 - 18,      type: 'mg', videoSrc: '/EldadMGCar.mp4', description: 'The red MG Cyberster — wind in your hair' },
-      { x: w * 0.48, y: h * 0.26,            type: 'castle', videoSrc: '/NakedCastle.mp4', description: 'Naked Castle — Moganshan\'s crown jewel since 1910' },
-    ],
+    memories: (w, h) => {
+      const mep = (id: string, xf: number, yf: number) => {
+        const pin = editorPins[id];
+        if (pin) return { x: w * pin.xFrac, y: h * pin.yFrac };
+        return { x: w * xf, y: h * yf };
+      };
+      return [
+        { ...mep('mem_chalet',  0.68,  0.66),  type: 'chalet',  videoSrc: '/SuiteRoomTour.mp4', description: 'A cozy wooden retreat tucked in the bamboo hills' },
+        { ...mep('mem_mg',      0.52,  0.775), type: 'mg',      videoSrc: '/EldadMGCar.mp4', description: 'The one and only MG Sports Car' },
+        { ...mep('mem_castle',  0.48,  0.26),  type: 'castle',  videoSrc: '/NakedCastle.mp4', description: 'Naked Castle — Moganshan\'s crown jewel since 1910' },
+      ];
+    },
     drawMemory: (ctx, mem, time) => {
       const mx = mem.x;
       const my = mem.y;
@@ -3672,4 +3698,253 @@ export const scenes: Record<string, Scene> = {
       }
     },
   },
+
+  tokyo: (() => {
+    const I: Record<string, HTMLImageElement> = {};
+    for (const [k, s] of [
+      ['fuji',    '/PNG_Japan/Volcano Fuji.png'],
+      ['trees',   '/PNG_Japan/Background Trees.png'],
+      ['clouds',  '/PNG_Japan/Clouds.png'],
+      ['sakura',  '/PNG_Japan/Sakura Tree.png'],
+      ['arc',     '/PNG_Japan/Arc.png'],
+      ['pagoda',  '/PNG_Japan/Tower.png'],
+      ['house',   '/PNG_Japan/House Outside.png'],
+      ['ramen',   '/Tokyo_neo/r_2044.png'],
+      ['doors',   '/Tokyo_neo/r_2042.png'],
+      ['lamp',    '/Tokyo_neo/r_2083.png'],
+      ['lantern', '/Tokyo_neo/r_2092.png'],
+      ['vend',    '/Tokyo_neo/r_2032.png'],
+      ['robocat',   '/Tokyo_neo/r_2023.png'],
+      ['neonSign',  '/Tokyo_neo/r_2089.png'],
+      ['pikachu',   '/pikachu-f.png'],
+      ['neo20',     '/Tokyo_neo/r_2020.png'],
+      ['snorlax',   '/snorlax.png'],
+      ['charizard', '/charizard.gif'],
+    ] as [string, string][]) { const img = new Image(); img.src = s; I[k] = img; }
+    return {
+    name: '🗼 Tokyo Sunset',
+    playerStart: (w, h) => ({ x: 50, y: h * 0.85 }),
+    background: (ctx, w, h, time) => {
+      const ground = h * 0.78;
+
+      // ── HELPERS ────────────────────────────────────────────────────────
+      const di = (img: HTMLImageElement, x: number, y: number, dw: number, dh: number, blend?: string) => {
+        if (!img.complete || img.naturalWidth === 0) return;
+        if (blend) ctx.globalCompositeOperation = blend as GlobalCompositeOperation;
+        ctx.drawImage(img, x, y, dw, dh);
+        if (blend) ctx.globalCompositeOperation = 'source-over';
+      };
+      const drawMemoryLabel = (lx: number, ly: number, emoji: string, title: string, detail: string) => {
+        const pad = 14;
+        ctx.font = 'bold 15px monospace';
+        const tw = ctx.measureText(emoji + ' ' + title).width;
+        ctx.font = '12px monospace';
+        const dw = detail ? ctx.measureText(detail).width : 0;
+        const bw = Math.max(tw, dw) + pad * 2;
+        const bh = detail ? 50 : 30;
+        ctx.fillStyle = 'rgba(0,0,0,0.32)';
+        ctx.beginPath(); ctx.roundRect(lx - bw / 2 + 3, ly + 3, bw, bh, 10); ctx.fill();
+        ctx.fillStyle = 'rgba(8,20,45,0.90)';
+        ctx.beginPath(); ctx.roundRect(lx - bw / 2, ly, bw, bh, 10); ctx.fill();
+        ctx.strokeStyle = 'rgba(180,220,255,0.45)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(lx - bw / 2, ly, bw, bh, 10); ctx.stroke();
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(emoji + ' ' + title, lx, ly + 20);
+        if (detail) {
+          ctx.fillStyle = 'rgba(180,220,255,0.95)'; ctx.font = '12px monospace';
+          ctx.fillText(detail, lx, ly + 39);
+        }
+        ctx.textAlign = 'left';
+      };
+      // Returns editor-overridden position/size/visibility; if hidden, skip the di() call
+      const ep = (id: string, defX: number, defY: number, defW: number, defH: number) => {
+        const pin = editorPins[id];
+        const active = isEditorActive();
+        return {
+          hidden: pin?.hidden ?? false,
+          x:  (active && pin) ? w * pin.xFrac : defX,
+          y:  (active && pin) ? h * pin.yFrac : defY,
+          dw: (active && pin?.wFrac != null) ? h * pin.wFrac : defW,
+          dh: (active && pin?.hFrac != null) ? h * pin.hFrac : defH,
+        };
+      };
+
+      // ── 1. SUNSET SKY ──────────────────────────────────────────────────
+      const sky = ctx.createLinearGradient(0, 0, 0, ground);
+      sky.addColorStop(0,    '#1a0a2e');
+      sky.addColorStop(0.25, '#3d1060');
+      sky.addColorStop(0.55, '#b83050');
+      sky.addColorStop(0.80, '#e8622a');
+      sky.addColorStop(1,    '#f5a82e');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, w, ground);
+      const groundG = ctx.createLinearGradient(0, ground, 0, h);
+      groundG.addColorStop(0, '#c04818'); groundG.addColorStop(1, '#1a0808');
+      ctx.fillStyle = groundG; ctx.fillRect(0, ground, w, h - ground);
+
+      // ── 2. SUN ─────────────────────────────────────────────────────────
+      const sunX = w * 0.62, sunY = ground - h * 0.04;
+      const sg = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, w * 0.30);
+      sg.addColorStop(0, 'rgba(255,210,60,0.80)'); sg.addColorStop(0.20, 'rgba(255,120,30,0.44)');
+      sg.addColorStop(0.55, 'rgba(200,50,20,0.10)'); sg.addColorStop(1, 'transparent');
+      ctx.fillStyle = sg; ctx.fillRect(0, 0, w, ground);
+      ctx.fillStyle = 'rgba(255,240,120,0.96)';
+      ctx.beginPath(); ctx.arc(sunX, sunY, 26, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,200,0.65)';
+      ctx.beginPath(); ctx.arc(sunX, sunY, 15, 0, Math.PI * 2); ctx.fill();
+
+      // ── 3. CLOUDS ──────────────────────────────────────────────────────
+      { const p = ep('clouds1', w*-0.070, h*-0.045, h*1.183, h*0.186); if (!p.hidden) di(I.clouds, p.x, p.y, p.dw, p.dh, 'multiply'); }
+      { const p = ep('clouds2', w*0.466,  h*-0.002, h*1.089, h*0.146); if (!p.hidden) di(I.clouds, p.x, p.y, p.dw, p.dh, 'multiply'); }
+
+      // ── 3b. SUN ABOVE FUJI ─────────────────────────────────────────────
+      {
+        const sx = w * 0.28, sy = h * 0.33, sr = h * 0.055;
+        // Outer glow
+        const sg2 = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 5);
+        sg2.addColorStop(0,   'rgba(255,230,80,0.55)');
+        sg2.addColorStop(0.3, 'rgba(255,160,30,0.22)');
+        sg2.addColorStop(0.7, 'rgba(220,80,10,0.07)');
+        sg2.addColorStop(1,   'transparent');
+        ctx.fillStyle = sg2;
+        ctx.beginPath(); ctx.arc(sx, sy, sr * 5, 0, Math.PI * 2); ctx.fill();
+        // Sun rays
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(time * 0.0001);
+        ctx.strokeStyle = 'rgba(255,220,60,0.18)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * sr * 1.4, Math.sin(a) * sr * 1.4);
+          ctx.lineTo(Math.cos(a) * sr * 3.2, Math.sin(a) * sr * 3.2);
+          ctx.stroke();
+        }
+        ctx.restore();
+        // Disc
+        ctx.fillStyle = 'rgba(255,245,120,0.97)';
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,200,0.6)';
+        ctx.beginPath(); ctx.arc(sx, sy, sr * 0.6, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── 4. MT. FUJI ────────────────────────────────────────────────────
+      { const p = ep('fuji', w*-0.006, h*0.406, h*1.024, h*0.522); if (!p.hidden) di(I.fuji, p.x, p.y, p.dw, p.dh); }
+
+      // ── 5. FAR TREE LINE ───────────────────────────────────────────────
+      { const p = ep('trees_l', w*0.473, h*0.236, h*0.534, h*0.200); if (!p.hidden) di(I.trees, p.x, p.y, p.dw, p.dh); }
+      { const p = ep('trees_r', w*0.681, h*0.714, h*0.312, h*0.088); if (!p.hidden) di(I.trees, p.x, p.y, p.dw, p.dh); }
+
+      // ── 6. PAGODA ──────────────────────────────────────────────────────
+      { const p = ep('pagoda', w*0.920, h*0.526, h*0.185, h*0.258); if (!p.hidden) di(I.pagoda, p.x, p.y, p.dw, p.dh); }
+
+      // ── 7. HOUSE ───────────────────────────────────────────────────────
+      { const p = ep('house', w*0.540, h*0.396, h*0.322, h*0.446); if (!p.hidden) di(I.house, p.x, p.y, p.dw, p.dh); }
+
+      // ── 9. BACKGROUND BUILDINGS ────────────────────────────────────────
+      { const p = ep('doors',   w*0.781, h*0.531,  h*0.320, h*0.250); if (!p.hidden) di(I.doors,   p.x, p.y, p.dw, p.dh); }
+
+      // ── 10. RAMEN SHOP ─────────────────────────────────────────────────
+      { const p = ep('ramen',   w*0.242, h*0.485,  h*0.391, h*0.380); if (!p.hidden) di(I.ramen,   p.x, p.y, p.dw, p.dh); }
+
+      // ── 11. TORII GATE ─────────────────────────────────────────────────
+      { const p = ep('arc',     w*0.544, h*0.534,  h*0.078, h*0.067); if (!p.hidden) di(I.arc, p.x, p.y, p.dw, p.dh); }
+
+      // ── 11b. NEON SIGN ─────────────────────────────────────────────────
+      { const p = ep('neon', w*0.649, h*0.522, h*0.039, h*0.072);
+        if (!p.hidden) di(I.neonSign, p.x, p.y, p.dw, p.dh); }
+
+      // ── 11c. NEO EXTRAS ────────────────────────────────────────────────
+      { const p = ep('neo44', w*0.793, h*0.477, h*0.313, h*0.313); if (!p.hidden) di(I.ramen, p.x, p.y, p.dw, p.dh); }
+      { const p = ep('neo20', w*0.085, h*0.243, h*0.150, h*0.150); if (!p.hidden) di(I.neo20, p.x, p.y, p.dw, p.dh); }
+
+      // ── 12. SAKURA TREES ──────────────────────────────────────────────
+      { const p = ep('sakura1', w*-0.003, h*0.528, h*0.278, h*0.278); if (!p.hidden) di(I.sakura, p.x, p.y, p.dw, p.dh); }
+      { const p = ep('sakura2', w*0.438, h*0.577, h*0.225, h*0.225); if (!p.hidden) di(I.sakura, p.x, p.y, p.dw, p.dh); }
+
+      // ── 13. GROUND ─────────────────────────────────────────────────────
+      ctx.fillStyle = '#6a3a18'; ctx.fillRect(0, ground, w, h * 0.026);
+      ctx.strokeStyle = 'rgba(255,180,100,0.06)'; ctx.lineWidth = 1;
+      for (let tx = 0; tx < w; tx += 32) { ctx.beginPath(); ctx.moveTo(tx, ground); ctx.lineTo(tx, ground + h * 0.026); ctx.stroke(); }
+      const stG = ctx.createLinearGradient(0, ground + h * 0.026, 0, h);
+      stG.addColorStop(0, '#1e0e06'); stG.addColorStop(1, '#0e0606');
+      ctx.fillStyle = stG; ctx.fillRect(0, ground + h * 0.026, w, h - ground - h * 0.026);
+      const ref = ctx.createLinearGradient(w * 0.28, 0, w * 0.82, 0);
+      ref.addColorStop(0, 'transparent'); ref.addColorStop(0.5, 'rgba(255,130,35,0.14)'); ref.addColorStop(1, 'transparent');
+      ctx.fillStyle = ref; ctx.fillRect(0, ground + h * 0.026, w, h * 0.06);
+
+      // ── 14. STREET LAMPS ───────────────────────────────────────────────
+      { const p1 = ep('lamp_l',  w*0.639, h*0.521, h*0.127, h*0.264);
+        const p2 = ep('lamp_r',  w*0.356, h*0.467, h*0.115, h*0.240);
+        if (!p1.hidden) di(I.lamp, p1.x, p1.y, p1.dw, p1.dh);
+        if (!p2.hidden) di(I.lamp, p2.x, p2.y, p2.dw, p2.dh); }
+
+      // ── 15. LANTERN ────────────────────────────────────────────────────
+      { const p = ep('lantern', w*0.586, h*0.516, h*0.043, h*0.078);
+        if (!p.hidden) di(I.lantern, p.x, p.y, p.dw, p.dh); }
+
+      // ── 16. VENDING MACHINE ────────────────────────────────────────────
+      { const p = ep('vend', w*0.522, h*0.321, h*0.132, h*0.160);
+        if (!p.hidden) di(I.vend, p.x, p.y, p.dw, p.dh); }
+
+      // ── 17. ROBOT CAT ──────────────────────────────────────────────────
+      { const p = ep('robocat', w*0.877, h*0.422, h*0.050, h*0.061);
+        if (!p.hidden) di(I.robocat, p.x, p.y, p.dw, p.dh); }
+
+      // ── 18. PIKACHU (wanders along the street) ─────────────────────────
+      { const pikH = h*0.085, pikW = pikH;
+        const p = ep('pikachu', w*0.331, h*0.711, pikW, pikH);
+        if (!p.hidden) {
+          const pikX = p.x + Math.sin(time * 0.0006) * w * 0.05;
+          const pikY = p.y + Math.abs(Math.sin(time * 0.003)) * 3;
+          di(I.pikachu, pikX - p.dw/2, pikY, p.dw, p.dh);
+        } }
+
+      // ── 19. SNORLAX ────────────────────────────────────────────────────
+      { const p = ep('snorlax', w*0.803, h*0.376, h*0.130, h*0.130);
+        if (!p.hidden) di(I.snorlax, p.x, p.y, p.dw, p.dh); }
+
+      // ── 20. CHARIZARD (flying) ─────────────────────────────────────────
+      { const p = ep('charizard', w*0.907, h*0.212, h*0.122, h*0.122);
+        if (!p.hidden) {
+          const flyX = p.x + Math.sin(time * 0.0007) * w * 0.012;
+          const flyY = p.y + Math.sin(time * 0.0018) * h * 0.022;
+          di(I.charizard, flyX, flyY, p.dw, p.dh);
+        } }
+
+      // ── 19. EXTRA OBJECTS (editor-added from library) ──────────────────
+      if (isEditorActive()) {
+        for (const obj of extraObjects) {
+          const img = getEditorImage(obj.src);
+          if (img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
+          }
+        }
+      }
+
+    },
+
+    platforms: (_w, _h) => [],
+
+    drawMemory: (ctx, mem, time) => {
+      const pulse = Math.sin(time * 0.003) * 5;
+      for (let i = 5; i > 0; i--) {
+        ctx.strokeStyle = `rgba(204,34,0,${0.15 + i * 0.1})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(mem.x, mem.y, 15 + i * 6 + pulse, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      for (let i = 0; i < 6; i++) {
+        const angle = time * 0.0025 + (i * Math.PI * 2) / 6;
+        const orbitR = 38 + pulse;
+        const mpx = mem.x + Math.cos(angle) * orbitR;
+        const mpy = mem.y + Math.sin(angle) * orbitR;
+        ctx.fillStyle = 'rgba(255,150,185,0.9)';
+        ctx.beginPath();
+        ctx.ellipse(mpx, mpy, 4, 3, angle, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
+  }; })(),
 };

@@ -13,6 +13,7 @@ import {
 } from '@/game/engine';
 import ControlsOverlay from './ControlsOverlay';
 import MemoryViewer from './MemoryViewer';
+import SceneEditorOverlay from './SceneEditorOverlay';
 
 interface GameCanvasProps {
   sceneKey: SceneKey;
@@ -24,6 +25,9 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewingVideo, setViewingVideo] = useState<string | undefined>(undefined);
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const [editorMode, setEditorMode] = useState(false);
+  const [canvasSize, setCanvasSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const editorModeRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const stateRef = useRef({
@@ -77,6 +81,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      setCanvasSize({ w: canvas.width, h: canvas.height });
     };
     resize();
     window.addEventListener('resize', resize);
@@ -111,6 +116,15 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
     });
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '`') {
+        const next = !editorModeRef.current;
+        editorModeRef.current = next;
+        setEditorMode(next);
+        e.preventDefault();
+        return;
+      }
+      if (editorModeRef.current) return;
+
       state.keys[e.key] = true;
 
       if (e.key === ' ' && !state.spacePressed) {
@@ -232,7 +246,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       }
 
       // Player
-      if (!showViewerRef.current && !cinematicRef.current) {
+      if (!showViewerRef.current && !cinematicRef.current && !editorModeRef.current) {
         updatePlayer(player, state.keys, platforms, w, h);
         updateTrick(player);
       }
@@ -445,6 +459,14 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         style={{ imageRendering: 'pixelated' }}
       />
       <ControlsOverlay showTricks={sceneKey === 'japan'} />
+      {editorMode && (
+        <SceneEditorOverlay
+          sceneKey={sceneKey}
+          canvasW={canvasSize.w}
+          canvasH={canvasSize.h}
+          onDisable={() => { editorModeRef.current = false; setEditorMode(false); }}
+        />
+      )}
       {sceneKey === 'concert' && (
         <>
           <audio ref={audioRef} src="/JazzMusicEldadAndTamir.mp3" loop preload="auto" />

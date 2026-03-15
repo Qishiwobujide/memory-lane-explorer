@@ -8,8 +8,8 @@ interface MainMenuProps {
 const stages: { key: SceneKey; world: number; title: string; date: string; icon: string; color: string; x: number; y: number }[] = [
   { key: 'castle',  world: 1, title: 'Naked Castle',                 date: 'JAN 2026',   icon: '🏯', color: '#3068e8', x: 18, y: 70 },
   { key: 'japan',   world: 2, title: 'Snowboarding Japan',           date: 'FEB 2026',   icon: '⛷️', color: '#28c0e8', x: 40, y: 56 },
-  { key: 'concert', world: 3, title: 'Future',                       date: 'DEC 2025',   icon: '🎸', color: '#e84820', x: 62, y: 68 },
-  { key: 'jazz',    world: 4, title: 'Jazz Nights Around the World', date: 'THE FUTURE', icon: '🎷', color: '#e8a020', x: 82, y: 48 },
+  { key: 'tokyo',   world: 3, title: 'Tokyo Nights',                 date: 'MAR 2026',   icon: '🗼', color: '#e81080', x: 62, y: 68 },
+  { key: 'concert', world: 4, title: 'Future',                       date: 'DEC 2025',   icon: '🎸', color: '#e84820', x: 82, y: 48 },
 ];
 
 const MainMenu = ({ onSelectScene }: MainMenuProps) => {
@@ -216,7 +216,7 @@ const MainMenu = ({ onSelectScene }: MainMenuProps) => {
         {/* Stage nodes */}
         {stages.map((stage, i) => {
           const isSelected = i === selected;
-          const nodeSize = isSelected ? 64 : 48;
+          const nodeSize = isSelected ? 118 : 96;
           return (
             <div
               key={stage.key}
@@ -257,12 +257,12 @@ const MainMenu = ({ onSelectScene }: MainMenuProps) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.15s',
-                fontSize: isSelected ? 24 : 18,
+                fontSize: isSelected ? 96 : 89,
                 lineHeight: 1,
               }}>
                 <span>{stage.icon}</span>
                 <span style={{
-                  fontSize: isSelected ? 7 : 6,
+                  fontSize: isSelected ? 9 : 7,
                   color: isSelected ? '#fff' : '#ccc',
                   marginTop: 2,
                   textShadow: '1px 1px 0 rgba(0,0,0,0.8)',
@@ -272,7 +272,7 @@ const MainMenu = ({ onSelectScene }: MainMenuProps) => {
               {/* Label below */}
               <div style={{ textAlign: 'center', marginTop: 4 }}>
                 <div style={{
-                  fontSize: 'clamp(5px, 1vw, 7px)',
+                  fontSize: 'clamp(12px, 1vw, 7px)',
                   color: isSelected ? '#f8e030' : '#ddd',
                   textShadow: isSelected ? '1px 1px 0 #8b5e00' : '1px 1px 0 rgba(0,0,0,0.9)',
                   maxWidth: 80,

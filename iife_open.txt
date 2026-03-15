@@ -1,0 +1,17 @@
+  tokyo: (() => {
+    const I: Record<string, HTMLImageElement> = {};
+    for (const [k, s] of [
+      ['arc',    '/PNG_Japan/Arc.png'],
+      ['sakura', '/PNG_Japan/Sakura Tree.gif'],
+      ['fuji',   '/PNG_Japan/Volcano Fuji.png'],
+      ['city',   '/PNG_Japan/City.png'],
+      ['trees',  '/PNG_Japan/Background Trees.png'],
+      ['tower',  '/PNG_Japan/Tower.png'],
+      ['house',  '/PNG_Japan/House Outside.png'],
+      ['cart',   '/PNG_Japan/Trading Cart.png'],
+      ['boy',    '/PNG_Japan/Boy.gif'],
+      ['girl',   '/PNG_Japan/Girl.gif'],
+      ['bushes', '/PNG_Japan/Bushes.gif'],
+    ] as [string, string][]) { const img = new Image(); img.src = s; I[k] = img; }
+    return {
+    name: '🗼 Tokyo Nights',

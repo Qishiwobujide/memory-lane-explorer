@@ -68,4 +68,4 @@ export interface GameState {
   memoryViewerOpen: boolean;
 }
 
-export type SceneKey = 'japan' | 'castle' | 'concert' | 'jazz';
+export type SceneKey = 'japan' | 'castle' | 'concert' | 'tokyo';
