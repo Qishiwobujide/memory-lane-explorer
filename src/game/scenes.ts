@@ -4102,8 +4102,8 @@ export const scenes: Record<string, Scene> = {
       { const p = ep('fuji', w*-0.006, h*0.406, h*1.024, h*0.522); if (!p.hidden) di(I.fuji, p.x, p.y, p.dw, p.dh); }
 
       // ── 5. FAR TREE LINE ───────────────────────────────────────────────
-      { const p = ep('trees_l', w*0.473, h*0.236, h*0.534, h*0.200); if (!p.hidden) di(I.trees, p.x, p.y, p.dw, p.dh); }
-      { const p = ep('trees_r', w*0.681, h*0.714, h*0.312, h*0.088); if (!p.hidden) di(I.trees, p.x, p.y, p.dw, p.dh); }
+      { const p = ep('trees_l', w*0.542, h*0.261, h*0.534, h*0.200); if (!p.hidden) di(I.trees, p.x, p.y, p.dw, p.dh); }
+      { const p = ep('trees_r', w*0.667, h*0.704, h*0.312, h*0.088); if (!p.hidden) di(I.trees, p.x, p.y, p.dw, p.dh); }
 
       // ── 6. PAGODA ──────────────────────────────────────────────────────
       { const p = ep('pagoda', w*0.920, h*0.526, h*0.185, h*0.258); if (!p.hidden) di(I.pagoda, p.x, p.y, p.dw, p.dh); }
@@ -4121,7 +4121,7 @@ export const scenes: Record<string, Scene> = {
       { const p = ep('arc',     w*0.544, h*0.534,  h*0.078, h*0.067); if (!p.hidden) di(I.arc, p.x, p.y, p.dw, p.dh); }
 
       // ── 11b. NEON SIGN ─────────────────────────────────────────────────
-      { const p = ep('neon', w*0.649, h*0.522, h*0.039, h*0.072);
+      { const p = ep('neon', w*0.637, h*0.516, h*0.039, h*0.072);
         if (!p.hidden) di(I.neonSign, p.x, p.y, p.dw, p.dh); }
 
       // ── 11c. NEO EXTRAS ────────────────────────────────────────────────
@@ -4144,21 +4144,21 @@ export const scenes: Record<string, Scene> = {
       ctx.fillStyle = ref; ctx.fillRect(0, ground + h * 0.026, w, h * 0.06);
 
       // ── 14. STREET LAMPS ───────────────────────────────────────────────
-      { const p1 = ep('lamp_l',  w*0.639, h*0.521, h*0.127, h*0.264);
-        const p2 = ep('lamp_r',  w*0.356, h*0.467, h*0.115, h*0.240);
+      { const p1 = ep('lamp_l',  w*0.658, h*0.650, h*0.127, h*0.264);
+        const p2 = ep('lamp_r',  w*0.391, h*0.549, h*0.115, h*0.240);
         if (!p1.hidden) di(I.lamp, p1.x, p1.y, p1.dw, p1.dh);
         if (!p2.hidden) di(I.lamp, p2.x, p2.y, p2.dw, p2.dh); }
 
       // ── 15. LANTERN ────────────────────────────────────────────────────
-      { const p = ep('lantern', w*0.586, h*0.516, h*0.043, h*0.078);
+      { const p = ep('lantern', w*0.575, h*0.506, h*0.043, h*0.078);
         if (!p.hidden) di(I.lantern, p.x, p.y, p.dw, p.dh); }
 
       // ── 16. VENDING MACHINE ────────────────────────────────────────────
-      { const p = ep('vend', w*0.522, h*0.321, h*0.132, h*0.160);
+      { const p = ep('vend', w*0.696, h*0.625, h*0.132, h*0.160);
         if (!p.hidden) di(I.vend, p.x, p.y, p.dw, p.dh); }
 
       // ── 17. ROBOT CAT ──────────────────────────────────────────────────
-      { const p = ep('robocat', w*0.877, h*0.422, h*0.050, h*0.061);
+      { const p = ep('robocat', w*0.891, h*0.417, h*0.050, h*0.061);
         if (!p.hidden) di(I.robocat, p.x, p.y, p.dw, p.dh); }
 
       // ── 18. PIKACHU (wanders along the street) ─────────────────────────
