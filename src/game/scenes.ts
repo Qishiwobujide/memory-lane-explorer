@@ -14,6 +14,11 @@ _castlePng.src = '/Castle.png';
 const _nsLogo = new Image();
 _nsLogo.src = '/NakedStableLogo.png';
 
+// Snowboard scene — snow sprite images
+const _snowGirl1 = new Image(); _snowGirl1.src = '/girl1_Idle.png';
+const _snowGirl2 = new Image(); _snowGirl2.src = '/girl2_walk.png';
+const _snowGirl3 = new Image(); _snowGirl3.src = '/girl3_Protection.png';
+
 // Castle scene — tree sprites
 const castleTreeImgs: HTMLImageElement[] = [
   'birch_3', 'birch_4', 'birch_5',
@@ -549,6 +554,28 @@ export const scenes: Record<string, Scene> = {
         ctx.beginPath();
         ctx.arc(sx, sy, size / 2, 0, Math.PI * 2);
         ctx.fill();
+      }
+
+      // ── SNOW SPRITES (editor pins) ──────────────────────────────────────
+      const epSnow = (id: string, img: HTMLImageElement, defXFrac: number, defYFrac: number, defWFrac: number, defHFrac: number) => {
+        const pin = editorPins[id];
+        if (pin?.hidden) return;
+        const x  = w * (pin?.xFrac ?? defXFrac);
+        const y  = h * (pin?.yFrac ?? defYFrac);
+        const dw = h * (pin?.wFrac ?? defWFrac);
+        const dh = h * (pin?.hFrac ?? defHFrac);
+        if (img.complete && img.naturalWidth > 0) ctx.drawImage(img, x, y, dw, dh);
+      };
+      epSnow('snow_girl1', _snowGirl1, 0.40, 0.40, 0.08, 0.14);
+      epSnow('snow_girl2', _snowGirl2, 0.55, 0.55, 0.08, 0.14);
+      epSnow('snow_girl3', _snowGirl3, 0.25, 0.60, 0.08, 0.14);
+
+      // ── EXTRA OBJECTS (editor-added from library) ──────────────────────
+      for (const obj of sceneExtras("japan")) {
+        if (!obj.src || !(obj.wFrac > 0) || !(obj.hFrac > 0)) continue;
+        const img = getEditorImage(obj.src);
+        if (img.complete && img.naturalWidth > 0)
+          ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
       }
     },
     platforms: (w, h) => [
@@ -3756,57 +3783,24 @@ export const scenes: Record<string, Scene> = {
           ctx.beginPath(); ctx.arc(cx2, cy2, 4.5, 0, Math.PI * 2); ctx.fill();
         }
 
-      } else {
-        // ── TROMBONE ─────────────────────────────────────────────
-        ctx.translate(mx, my + pulse);
-        ctx.shadowColor = '#e8a030'; ctx.shadowBlur = 20 + pulse;
-        ctx.rotate(-0.18);
-        ctx.fillStyle = '#c07808'; ctx.fillRect(-5, -38, 10, 62);
-        ctx.fillStyle = '#d48a10'; ctx.fillRect(-2, -10, 5, 38);
-        ctx.fillStyle = '#a06008'; ctx.fillRect(-12, -18, 24, 4);
-        ctx.fillStyle = '#a06008'; ctx.fillRect(-12, 2, 24, 4);
-        ctx.fillStyle = '#c07808';
-        ctx.beginPath();
-        ctx.moveTo(-5, -38);
-        ctx.bezierCurveTo(-20, -50, -26, -42, -20, -35);
-        ctx.bezierCurveTo(-14, -28, -5, -32, -5, -38);
-        ctx.fill();
-        ctx.strokeStyle = '#e8b030'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.ellipse(-16, -38, 8, 5, -0.4, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = '#e0a828'; ctx.fillRect(-4, 22, 8, 7);
-        ctx.beginPath(); ctx.ellipse(0, 30, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#884808'; ctx.beginPath(); ctx.arc(4, 8, 3.5, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,200,80,0.45)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(-1, -36); ctx.lineTo(-1, 20); ctx.stroke();
-      }
-
-      ctx.restore();
-    },
-    memory: (_w, h) => ({
-      x: _w * 0.5,
-      y: h * 0.56 - 200,
-      type: 'portal',
-      description: 'Jazz nights echoing across the world',
-    }),
-    drawMemory: (ctx, mem, time) => {
-      if (mem.type === 'jasons') {
+      } else if (mem.type === 'jasons') {
         // ── JASON'S MEMORY — glowing vintage camera ───────────────
         const bob = Math.sin(time * 0.002) * 4;
-        const pulse = 0.7 + Math.sin(time * 0.0025) * 0.3;
+        const camPulse = 0.7 + Math.sin(time * 0.0025) * 0.3;
         ctx.save();
         ctx.translate(mem.x, mem.y + bob);
 
         // Soft amber halo
         const halo = ctx.createRadialGradient(0, 0, 4, 0, 0, 52);
-        halo.addColorStop(0, `rgba(255,180,60,${0.35 * pulse})`);
+        halo.addColorStop(0, `rgba(255,180,60,${0.35 * camPulse})`);
         halo.addColorStop(1, 'rgba(255,140,20,0)');
         ctx.fillStyle = halo;
         ctx.beginPath(); ctx.arc(0, 0, 52, 0, Math.PI * 2); ctx.fill();
 
         // Camera body
         ctx.save();
-        ctx.shadowColor = `rgba(255,180,60,${0.9 * pulse})`;
-        ctx.shadowBlur = 14 + pulse * 8;
+        ctx.shadowColor = `rgba(255,180,60,${0.9 * camPulse})`;
+        ctx.shadowBlur = 14 + camPulse * 8;
         const bodyG = ctx.createLinearGradient(-22, -14, 22, 14);
         bodyG.addColorStop(0, '#5a3a10'); bodyG.addColorStop(0.5, '#8a5c18'); bodyG.addColorStop(1, '#4a2c08');
         ctx.fillStyle = bodyG;
@@ -3815,7 +3809,7 @@ export const scenes: Record<string, Scene> = {
 
         // Lens barrel
         ctx.save();
-        ctx.shadowColor = `rgba(255,180,60,${0.7 * pulse})`;
+        ctx.shadowColor = `rgba(255,180,60,${0.7 * camPulse})`;
         ctx.shadowBlur = 10;
         const lensG = ctx.createRadialGradient(-3, -3, 2, 0, 0, 11);
         lensG.addColorStop(0, '#3a4a5a'); lensG.addColorStop(0.5, '#1a2a3a'); lensG.addColorStop(1, '#0a1218');
@@ -3843,59 +3837,13 @@ export const scenes: Record<string, Scene> = {
         ctx.font = '9px "Press Start 2P", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = `rgba(255,210,80,${0.8 + pulse * 0.2})`;
+        ctx.fillStyle = `rgba(255,210,80,${0.8 + camPulse * 0.2})`;
         ctx.fillText('▶ GRAB', 0, 26);
 
         ctx.restore();
-        return;
       }
 
-      const bob = Math.sin(time * 0.0025) * 6;
-      const pulse = 0.7 + Math.sin(time * 0.003) * 0.3;
-      const glow = 20 + Math.sin(time * 0.004) * 10;
-      const y = mem.y + bob;
-
-      // Outer radiant halo
-      const halo = ctx.createRadialGradient(mem.x, y, 5, mem.x, y, 70);
-      halo.addColorStop(0, `rgba(255, 220, 0, ${0.35 * pulse})`);
-      halo.addColorStop(0.5, `rgba(255, 160, 0, ${0.15 * pulse})`);
-      halo.addColorStop(1, 'rgba(255, 100, 0, 0)');
-      ctx.fillStyle = halo;
-      ctx.beginPath();
-      ctx.arc(mem.x, y, 70, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Big glowing ♪ note
-      ctx.save();
-      ctx.shadowColor = `rgba(255, 220, 0, ${0.9 * pulse})`;
-      ctx.shadowBlur = glow * 2;
-      ctx.font = 'bold 72px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = `rgba(255, 230, 30, ${0.85 + pulse * 0.15})`;
-      ctx.fillText('♪', mem.x, y);
-      // Second pass for extra glow
-      ctx.shadowBlur = glow * 3;
-      ctx.globalAlpha = 0.4 * pulse;
-      ctx.fillText('♪', mem.x, y);
       ctx.restore();
-
-      // Orbiting small notes
-      for (let s = 0; s < 4; s++) {
-        const angle = time * 0.0018 + (s * Math.PI * 2) / 4;
-        const r = 50 + Math.sin(time * 0.002 + s) * 5;
-        const nx = mem.x + Math.cos(angle) * r;
-        const ny = y + Math.sin(angle) * r * 0.5;
-        ctx.save();
-        ctx.shadowColor = 'rgba(255, 220, 0, 0.8)';
-        ctx.shadowBlur = 8;
-        ctx.font = '18px serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = `rgba(255, 220, 80, ${0.6 + Math.sin(time * 0.003 + s) * 0.3})`;
-        ctx.fillText(s % 2 === 0 ? '♩' : '♫', nx, ny);
-        ctx.restore();
-      }
     },
   }; })(),
 

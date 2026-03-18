@@ -11,7 +11,9 @@
       "Bash(npx tsc:*)",
       "Bash(curl:*)",
       "Bash(magick:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git push:*)",
+      "Bash(ls:*)"
     ]
   }
 }

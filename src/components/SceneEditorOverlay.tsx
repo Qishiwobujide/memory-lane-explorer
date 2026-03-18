@@ -6,6 +6,16 @@ import {
 
 // ── PNG library ────────────────────────────────────────────────────────────────
 const PNG_LIBRARY = [
+  { group: 'Snowboard', items: [
+    '/girl1_Idle.png', '/girl2_walk.png', '/girl3_Protection.png',
+    '/Snow sprites/sprite_0000.png', '/Snow sprites/sprite_0001.png', '/Snow sprites/sprite_0002.png',
+    '/Snow sprites/sprite_0003.png', '/Snow sprites/sprite_0004.png', '/Snow sprites/sprite_0005.png',
+    '/Snow sprites/sprite_0006.png', '/Snow sprites/sprite_0007.png', '/Snow sprites/sprite_0009.png',
+    '/Snow sprites/sprite_0010.png', '/Snow sprites/sprite_0011.png', '/Snow sprites/sprite_0012.png',
+    '/Snow sprites/sprite_0014.png', '/Snow sprites/sprite_0015.png', '/Snow sprites/sprite_0020.png',
+    '/Snow sprites/sprite_0024.png', '/Snow sprites/sprite_0027.png', '/Snow sprites/sprite_0028.png',
+    '/Snow sprites/sprite_0033.png',
+  ]},
   { group: 'Japan', items: [
     '/PNG_Japan/Sakura Tree.png', '/PNG_Japan/Arc.png', '/PNG_Japan/Background Trees.png',
     '/PNG_Japan/Clouds.png', '/PNG_Japan/House Outside.png', '/PNG_Japan/House Inside.png',
@@ -39,6 +49,11 @@ interface PinDef {
   hidden?: boolean;
 }
 const SCENE_PINS: Record<string, PinDef[]> = {
+  japan: [
+    { id: 'snow_girl1', name: '🧍 Girl (Idle)',      color: '#aaddff', xFrac: 0.40, yFrac: 0.40, wFrac: 0.08, hFrac: 0.14 },
+    { id: 'snow_girl2', name: '🚶 Girl (Walk)',       color: '#aaffdd', xFrac: 0.55, yFrac: 0.55, wFrac: 0.08, hFrac: 0.14 },
+    { id: 'snow_girl3', name: '🛡️ Girl (Protection)', color: '#ffddaa', xFrac: 0.25, yFrac: 0.60, wFrac: 0.08, hFrac: 0.14 },
+  ],
   castle: [
     { id: 'castle_bldg', name: '🏰 Castle Building', color: '#ffd700', xFrac: 0.380, yFrac: 0.637, wFrac: 0.400, hFrac: 0.300 },
     { id: 'castle_png',  name: '🏰 Castle.png',      color: '#ffcc44', xFrac: 0.389, yFrac: 0.173, wFrac: 0.200, hFrac: 0.200 },

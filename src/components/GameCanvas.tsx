@@ -14,6 +14,7 @@ import {
 import ControlsOverlay from './ControlsOverlay';
 import MemoryViewer from './MemoryViewer';
 import SceneEditorOverlay from './SceneEditorOverlay';
+import InfinityPoolWorld from './InfinityPoolWorld';
 
 interface GameCanvasProps {
   sceneKey: SceneKey;
@@ -27,6 +28,8 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [editorMode, setEditorMode] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [infinityPoolOpen, setInfinityPoolOpen] = useState(false);
+  const infinityPoolOpenRef = useRef(false);
   const editorModeRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -143,7 +146,10 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       if (e.key === '3') startTrick(player, 'spin');
 
       if (e.key === 'Escape') {
-        if (showViewerRef.current) {
+        if (infinityPoolOpenRef.current) {
+          infinityPoolOpenRef.current = false;
+          setInfinityPoolOpen(false);
+        } else if (showViewerRef.current) {
           showViewerRef.current = false;
           setViewerOpen(false);
           setViewingVideo(undefined);
@@ -191,14 +197,50 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
 
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      mouseRef.current = { x: mx, y: my };
+      // Update cursor if hovering a background label
+      if (scene.backgroundLabels) {
+        let overLabel = false;
+        for (const area of scene.backgroundLabels(canvas.width, canvas.height)) {
+          const dx = mx - area.x;
+          const dy = my - area.y;
+          if (Math.sqrt(dx * dx + dy * dy) < area.radius) {
+            overLabel = true;
+            break;
+          }
+        }
+        canvas.style.cursor = overLabel ? 'pointer' : 'default';
+      }
     };
-    const onMouseLeave = () => { mouseRef.current = null; };
+    const onMouseLeave = () => {
+      mouseRef.current = null;
+      canvas.style.cursor = 'default';
+    };
+
+    const onCanvasClick = (e: MouseEvent) => {
+      if (editorModeRef.current || infinityPoolOpenRef.current) return;
+      if (!scene.backgroundLabels) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      for (const area of scene.backgroundLabels(canvas.width, canvas.height)) {
+        const dx = mx - area.x;
+        const dy = my - area.y;
+        if (Math.sqrt(dx * dx + dy * dy) < area.radius && area.title === 'Infinity Pool') {
+          infinityPoolOpenRef.current = true;
+          setInfinityPoolOpen(true);
+          break;
+        }
+      }
+    };
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mouseleave', onMouseLeave);
+    canvas.addEventListener('click', onCanvasClick);
 
     const loop = (time: number) => {
       const w = canvas.width;
@@ -380,13 +422,16 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
             const dx = mouse.x - area.x;
             const dy = mouse.y - area.y;
             if (Math.sqrt(dx * dx + dy * dy) < area.radius) {
+              const isClickable = area.title === 'Infinity Pool';
               ctx.font = '11px "Press Start 2P", monospace';
               const titleW = ctx.measureText(area.title).width;
               ctx.font = '9px "Press Start 2P", monospace';
               const subW = area.subtitle ? ctx.measureText(area.subtitle).width : 0;
+              const hintText = 'click to enter →';
+              const hintW = isClickable ? ctx.measureText(hintText).width : 0;
               const pad = 12;
-              const bw = Math.max(titleW + pad * 2, subW + pad * 2, 120);
-              const bh = area.subtitle ? 46 : 28;
+              const bw = Math.max(titleW + pad * 2, subW + pad * 2, hintW + pad * 2, 120);
+              const bh = area.subtitle ? (isClickable ? 62 : 46) : 28;
               let tx = area.x - bw / 2;
               let ty = area.y - bh - 14;
               tx = Math.max(8, Math.min(w - bw - 8, tx));
@@ -411,6 +456,12 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
                 ctx.font = '9px "Press Start 2P", monospace';
                 ctx.fillStyle = 'rgba(255, 215, 0, 0.55)';
                 ctx.fillText(area.subtitle, tx + pad, ty + 36);
+              }
+              // Click hint
+              if (isClickable) {
+                ctx.font = '9px "Press Start 2P", monospace';
+                ctx.fillStyle = 'rgba(100, 220, 255, 0.85)';
+                ctx.fillText(hintText, tx + pad, ty + bh - 10);
               }
               // Dashed connector line from tooltip to pool
               ctx.save();
@@ -498,6 +549,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       window.removeEventListener('keyup', onKeyUp);
       canvas.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mouseleave', onMouseLeave);
+      canvas.removeEventListener('click', onCanvasClick);
     };
   }, [sceneKey, onBack]);
 
@@ -549,6 +601,13 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
             }}
           />
         </>
+      )}
+
+      {infinityPoolOpen && (
+        <InfinityPoolWorld onClose={() => {
+          infinityPoolOpenRef.current = false;
+          setInfinityPoolOpen(false);
+        }} />
       )}
 
       {editorMode && (
