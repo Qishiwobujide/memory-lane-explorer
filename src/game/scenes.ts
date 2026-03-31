@@ -861,7 +861,7 @@ export const scenes: Record<string, Scene> = {
       // -------------------------------------------------------
       // THE CASTLE  — cream stone, dark slate roofs, right tower
       // -------------------------------------------------------
-      const _cpBldg = epTree('castle_bldg', w * 0.38, h * 0.16, w * 0.40, h * 0.30);
+      const _cpBldg = epTree('castle_bldg', w * 0.390, h * 0.579, h * 0.400, h * 0.300);
       const bx = _cpBldg.x;   // left edge of castle complex
       const by = _cpBldg.y;   // top of tallest element
 
@@ -1039,7 +1039,7 @@ export const scenes: Record<string, Scene> = {
 
       // ---- CASTLE.PNG IMAGE ----
       {
-        const p = epTree('castle_png', w * 0.389, h * 0.173, h * 0.200, h * 0.200);
+        const p = epTree('castle_png', w * 0.397, h * 0.149, h * 0.200, h * 0.200);
         if (!p.hidden && _castlePng.complete && _castlePng.naturalWidth > 0) {
           ctx.drawImage(_castlePng, p.x, p.y, p.dw, p.dh);
         }
@@ -1047,10 +1047,10 @@ export const scenes: Record<string, Scene> = {
 
       // ---- NAKED CASTLE LOGO (circle-clipped, same style as Naked Stable Logo) ----
       {
-        const p = epTree('nc_logo', w * 0.433, h * 0.075, h * 0.118, h * 0.118);
+        const p = epTree('nc_logo', w * 0.440, h * 0.046, h * 0.118, h * 0.118);
         // Always draw at baked position if hidden; use pin position when editor un-hides it
-        const ncLogoX = p.hidden ? w * 0.433 + h * 0.059 : p.x + p.dw / 2;
-        const ncLogoY = p.hidden ? h * 0.075 + h * 0.059 : p.y + p.dh / 2;
+        const ncLogoX = p.hidden ? w * 0.440 + h * 0.059 : p.x + p.dw / 2;
+        const ncLogoY = p.hidden ? h * 0.046 + h * 0.059 : p.y + p.dh / 2;
         const ncLogoR = p.hidden ? h * 0.059 : p.dw / 2;
         // Glow ring
         ctx.save();
@@ -1442,19 +1442,19 @@ export const scenes: Record<string, Scene> = {
         ['ct_l0', 0.263, 0.063, 0.132, 0.240],
         ['ct_l1', 0.289, 0.460, 0.150, 0.272],
         ['ct_l2', 0.510, 0.102, 0.123, 0.224],
-        ['ct_l3', 0.439, 0.404, 0.132, 0.240],
+        ['ct_l3', 0.519, 0.510, 0.132, 0.240],
         ['ct_l4', 0.227, 0.306, 0.114, 0.208],
-        ['ct_l5', 0.016, 0.435, 0.123, 0.224],
+        ['ct_l5', 0.011, 0.432, 0.123, 0.224],
         ['ct_l6', 0.523, 0.441, 0.106, 0.192],
       ];
       for (const [id, xf, yf, wf, hf] of leftTrees) drawPngTree(id, xf, yf, wf, hf);
 
       // Right forest bank
       const rightTrees: [string, number, number, number, number][] = [
-        ['ct_r0', 0.065, 0.174, 0.141, 0.256],
+        ['ct_r0', 0.069, 0.219, 0.114, 0.207],
         ['ct_r1', 0.923, 0.466, 0.090, 0.163],
         ['ct_r2', 0.561, 0.643, 0.106, 0.192],
-        ['ct_r3', 0.715, 0.177, 0.114, 0.208],
+        ['ct_r3', 0.718, 0.197, 0.103, 0.187],
         ['ct_r4', 0.774, 0.455, 0.100, 0.181],
         ['ct_r5', 0.297, 0.465, 0.097, 0.176],
       ];
@@ -1462,7 +1462,7 @@ export const scenes: Record<string, Scene> = {
 
       // Trees behind/around the castle base
       const behindTrees: [string, number, number, number, number][] = [
-        ['ct_b0', 0.533, 0.224, 0.079, 0.144],
+        ['ct_b0', 0.582, 0.232, 0.079, 0.144],
         ['ct_b1', 0.832, 0.310, 0.088, 0.160],
         ['ct_b2', 0.604, 0.502, 0.075, 0.136],
       ];
@@ -1785,7 +1785,7 @@ export const scenes: Record<string, Scene> = {
       return [
         { ...mep('mem_chalet',  0.68,  0.66),  type: 'chalet',  videoSrc: '/SuiteRoomTour.mp4', description: 'A cozy wooden retreat tucked in the bamboo hills' },
         { ...mep('mem_mg',      0.52,  0.775), type: 'mg',      videoSrc: '/EldadMGCar.mp4', description: 'The one and only MG Sports Car' },
-        { ...mep('mem_castle',  0.48,  0.26),  type: 'castle',  videoSrc: '/NakedCastle.mp4', description: 'Naked Castle — Moganshan\'s crown jewel since 1910' },
+        { ...mep('mem_castle',  0.508, 0.380), type: 'castle',  videoSrc: '/NakedCastle.mp4', description: 'Naked Castle — Moganshan\'s crown jewel since 1910' },
       ];
     },
     drawMemory: (ctx, mem, time) => {

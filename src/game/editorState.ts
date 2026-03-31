@@ -18,7 +18,7 @@ export interface ExtraObject {
   hFrac: number;  // height / canvasH
 }
 
-const LS_PINS   = 'editorPins_v1';
+const LS_PINS   = 'editorPins_v2';
 const LS_EXTRAS = 'editorExtras_v2'; // bumped version — clears old scene-less data
 
 function loadPins(): Record<string, EditorPin> {
