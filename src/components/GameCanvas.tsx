@@ -15,6 +15,16 @@ import ControlsOverlay from './ControlsOverlay';
 import MemoryViewer from './MemoryViewer';
 import SceneEditorOverlay from './SceneEditorOverlay';
 import InfinityPoolWorld from './InfinityPoolWorld';
+import PauseMenu from './PauseMenu';
+import TouchControls from './TouchControls';
+import GameHud from './hud/GameHud';
+import { audio as sfx } from '@/game/audio';
+import { getCollected, markCollected } from '@/game/progress';
+import { memoryTitle } from '@/game/memoryRegistry';
+import { worldByKey } from '@/game/worlds';
+import { Particle, FloatText, spawnBurst, spawnFloatText, updateAndDraw } from '@/game/particles';
+import { drawHintPill } from '@/game/canvasUi';
+import { useIsTouchDevice } from '@/hooks/use-touch';
 
 interface GameCanvasProps {
   sceneKey: SceneKey;
@@ -25,13 +35,31 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewingVideo, setViewingVideo] = useState<string | undefined>(undefined);
+  const [viewingMeta, setViewingMeta] = useState<{ title?: string; description?: string }>({});
+  const [viewerClosing, setViewerClosing] = useState(false);
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [editorMode, setEditorMode] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [infinityPoolOpen, setInfinityPoolOpen] = useState(false);
+  const [hudCollected, setHudCollected] = useState(0);
+  const [hudTotal, setHudTotal] = useState(0);
+  const [hudFlying, setHudFlying] = useState(false);
+  const [flash, setFlash] = useState(0);
   const infinityPoolOpenRef = useRef(false);
   const editorModeRef = useRef(false);
+  const pausedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isTouch = useIsTouchDevice();
+
+  const particlesRef = useRef<Particle[]>([]);
+  const floatTextRef = useRef<FloatText[]>([]);
+  const wasOnGroundRef = useRef(true);
+  const viewerDelayRef = useRef<number | null>(null);
+  const viewerCloseTimerRef = useRef<number | null>(null);
+  const viewerClosingRef = useRef(false);
+  const concertWasPlayingRef = useRef(false);
+  const pausedCinematicElapsedRef = useRef<number | null>(null);
 
   const stateRef = useRef({
     player: createPlayer(),
@@ -59,10 +87,59 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
     }
   };
 
+  // Animated close: play the exit animation, keep the game frozen
+  // (showViewerRef stays true) until the card has faded out.
   const handleCloseViewer = useCallback(() => {
-    showViewerRef.current = false;
-    setViewerOpen(false);
-    setViewingVideo(undefined);
+    if (viewerClosingRef.current) return;
+    viewerClosingRef.current = true;
+    setViewerClosing(true);
+    sfx.play('viewerClose');
+    viewerCloseTimerRef.current = window.setTimeout(() => {
+      viewerClosingRef.current = false;
+      showViewerRef.current = false;
+      setViewerClosing(false);
+      setViewerOpen(false);
+      setViewingVideo(undefined);
+      setViewingMeta({});
+    }, 220);
+  }, []);
+
+  const openPause = useCallback(() => {
+    if (pausedRef.current) return;
+    pausedRef.current = true;
+    setPaused(true);
+    sfx.play('pauseOpen');
+    // Freeze concert music
+    const music = audioRef.current;
+    if (music && !music.paused) {
+      concertWasPlayingRef.current = true;
+      music.pause();
+    } else {
+      concertWasPlayingRef.current = false;
+    }
+    // Freeze the concert countdown where it is
+    if (cinematicRef.current) {
+      pausedCinematicElapsedRef.current = performance.now() - cinematicRef.current.startTime;
+    }
+  }, []);
+
+  const closePause = useCallback(() => {
+    if (!pausedRef.current) return;
+    pausedRef.current = false;
+    setPaused(false);
+    sfx.play('pauseClose');
+    // Clear held keys so the player doesn't drift after resuming
+    stateRef.current.keys = {};
+    stateRef.current.spacePressed = false;
+    if (concertWasPlayingRef.current) {
+      audioRef.current?.play().catch(() => {});
+      concertWasPlayingRef.current = false;
+    }
+    // Rebase the countdown so it resumes where it left off
+    if (cinematicRef.current && pausedCinematicElapsedRef.current !== null) {
+      cinematicRef.current.startTime = performance.now() - pausedCinematicElapsedRef.current;
+    }
+    pausedCinematicElapsedRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -75,11 +152,19 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
     const state = stateRef.current;
     const player = state.player;
 
-    // Reset state for this scene
-    collectedRef.current = new Set();
+    // Reset state for this scene — collected memories hydrate from the
+    // session progress store so they persist across scene/menu switches.
+    collectedRef.current = new Set(getCollected(sceneKey));
     memoryAnimRef.current = new Map();
     showViewerRef.current = false;
     cinematicRef.current = null;
+    pausedRef.current = false;
+    setPaused(false);
+    particlesRef.current = [];
+    floatTextRef.current = [];
+    wasOnGroundRef.current = true;
+    setHudCollected(collectedRef.current.size);
+    setHudFlying(false);
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -112,7 +197,9 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
     };
 
     // Init driving memories immediately at scene start
-    getAllMemories(canvas.width, canvas.height).forEach((mem, idx) => {
+    const initialMemories = getAllMemories(canvas.width, canvas.height);
+    setHudTotal(initialMemories.length);
+    initialMemories.forEach((mem, idx) => {
       if (mem.type === 'mg') {
         memoryAnimRef.current.set(idx, { x: mem.x, y: mem.y, dir: 1, mirror: -1, flipping: false, flipAngle: 0 });
       }
@@ -120,6 +207,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === '`') {
+        closePause(); // editor and pause never coexist
         const next = !editorModeRef.current;
         editorModeRef.current = next;
         setEditorMode(next);
@@ -127,11 +215,15 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         return;
       }
       if (editorModeRef.current) return;
+      if (pausedRef.current) return; // PauseMenu owns the keyboard while open
 
       state.keys[e.key] = true;
 
       if (e.key === ' ' && !state.spacePressed) {
         state.spacePressed = true;
+        if (!showViewerRef.current && player.jumpsRemaining > 0 && !player.flying) {
+          sfx.play(player.jumpsRemaining === player.maxJumps ? 'jump' : 'jumpAir');
+        }
         tryJump(player);
         e.preventDefault();
       }
@@ -139,26 +231,31 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       if (e.key === 'f' || e.key === 'F') {
         player.flying = !player.flying;
         if (player.flying) player.velocityY = 0;
+        setHudFlying(player.flying);
       }
 
-      if (e.key === '1') startTrick(player, 'flip');
-      if (e.key === '2') startTrick(player, 'grab');
-      if (e.key === '3') startTrick(player, 'spin');
+      if (e.key === '1' || e.key === '2' || e.key === '3') {
+        const trick = e.key === '1' ? 'flip' : e.key === '2' ? 'grab' : 'spin';
+        startTrick(player, trick);
+        if (player.trick === trick) sfx.play('trick');
+      }
+
+      if (e.key === 'm' || e.key === 'M') {
+        sfx.toggleMuted();
+      }
 
       if (e.key === 'Escape') {
         if (infinityPoolOpenRef.current) {
           infinityPoolOpenRef.current = false;
           setInfinityPoolOpen(false);
         } else if (showViewerRef.current) {
-          showViewerRef.current = false;
-          setViewerOpen(false);
-          setViewingVideo(undefined);
+          handleCloseViewer();
         } else {
-          onBack();
+          openPause();
         }
       }
 
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !showViewerRef.current) {
         const w = canvas.width;
         const h = canvas.height;
         const allMemories = getAllMemories(w, h);
@@ -168,24 +265,51 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
           state.itemCollected = true;
           player.hasItem = true;
           state.item.collected = true;
+          sfx.play('pickup');
         }
 
         const needsItem = !!scene.item;
         const canCollect = !needsItem || state.itemCollected;
 
-        if (canCollect) {
-          for (let i = 0; i < allMemories.length; i++) {
-            const anim = memoryAnimRef.current.get(i);
-            const checkX = anim ? anim.x : allMemories[i].x;
-            const checkY = anim ? anim.y : allMemories[i].y;
-            if (!collectedRef.current.has(i) && checkProximity(player, checkX, checkY)) {
-              collectedRef.current.add(i);
-              showViewerRef.current = true;
-              setViewerOpen(true);
-              setViewingVideo(allMemories[i].videoSrc);
+        const openViewerFor = (mem: MemoryArtifact) => {
+          showViewerRef.current = true;
+          setViewerOpen(true);
+          setViewingVideo(mem.videoSrc);
+          setViewingMeta({ title: memoryTitle(mem), description: mem.description });
+        };
+
+        for (let i = 0; i < allMemories.length; i++) {
+          const anim = memoryAnimRef.current.get(i);
+          const checkX = anim ? anim.x : allMemories[i].x;
+          const checkY = anim ? anim.y : allMemories[i].y;
+          if (!checkProximity(player, checkX, checkY)) continue;
+
+          if (!collectedRef.current.has(i)) {
+            if (!canCollect) {
+              sfx.play('locked');
               break;
             }
+            // Collect: feedback first, viewer a beat later so the burst reads
+            collectedRef.current.add(i);
+            markCollected(sceneKey, i);
+            setHudCollected(collectedRef.current.size);
+            sfx.play('collect');
+            spawnBurst(particlesRef.current, checkX, checkY);
+            spawnFloatText(floatTextRef.current, checkX, checkY - 30, '+1 MEMORY ✦');
+            setFlash((f) => f + 1);
+            const mem = allMemories[i];
+            if (viewerDelayRef.current) window.clearTimeout(viewerDelayRef.current);
+            viewerDelayRef.current = window.setTimeout(() => {
+              viewerDelayRef.current = null;
+              openViewerFor(mem);
+            }, 500);
+            break;
           }
+
+          // Already collected — re-watch without the fanfare
+          sfx.play('viewerOpen');
+          openViewerFor(allMemories[i]);
+          break;
         }
       }
     };
@@ -263,8 +387,10 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       for (let i = 0; i < allMemories.length; i++) {
         const anim = memoryAnimRef.current.get(i);
         if (anim) {
-          // Update car position
-          if (!anim.flipping) {
+          // Update car position (frozen while paused)
+          if (pausedRef.current) {
+            // draw only
+          } else if (!anim.flipping) {
             anim.x += 1.4 * anim.dir;
             if ((anim.dir > 0 && anim.x > w + 60) || (anim.dir < 0 && anim.x < -60)) {
               anim.flipping = true;
@@ -293,11 +419,21 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       }
 
       // Player
-      if (!showViewerRef.current && !cinematicRef.current && !editorModeRef.current) {
+      if (!showViewerRef.current && !cinematicRef.current && !editorModeRef.current && !pausedRef.current) {
+        const wasOnGround = wasOnGroundRef.current;
+        const prevVelY = player.velocityY;
         updatePlayer(player, state.keys, platforms, w, h);
         updateTrick(player);
+        // Landing thud — only on a real fall so slope-snapping doesn't spam it
+        if (player.onGround && !wasOnGround && prevVelY > 6) {
+          sfx.play('land');
+        }
+        wasOnGroundRef.current = player.onGround;
       }
       drawPlayer(ctx, player, time);
+
+      // Collection feedback effects
+      updateAndDraw(ctx, particlesRef.current, floatTextRef.current);
 
       // Flying wings visual
       if (player.flying) {
@@ -334,14 +470,6 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         ctx.stroke();
         ctx.restore();
         ctx.restore();
-        // HUD badge
-        ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.beginPath(); ctx.roundRect(w - 130, 12, 110, 26, 6); ctx.fill();
-        ctx.fillStyle = '#ffe066';
-        ctx.font = '10px "Press Start 2P", monospace';
-        ctx.fillText('🪶 FLYING', w - 120, 30);
-        ctx.restore();
       }
 
       // Trick name
@@ -352,33 +480,22 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         ctx.fillText(trickName, player.x - 20, player.y - 20);
       }
 
-      // Scene name
-      ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
-      ctx.font = '14px "Press Start 2P", monospace';
-      ctx.fillText(scene.name, 20, 30);
-
-      // Memory counter for multi-memory scenes
-      if (allMemories.length > 1) {
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.6)';
-        ctx.font = '10px "Press Start 2P", monospace';
-        ctx.fillText(`Memories: ${collectedRef.current.size}/${allMemories.length}`, 20, 55);
-      }
-
-      // Proximity hints
+      // Proximity hints (scene name + counter now live in the DOM HUD)
       const needsItem = !!scene.item;
       const canCollect = !needsItem || state.itemCollected;
-      ctx.font = '10px "Press Start 2P", monospace';
       for (let i = 0; i < allMemories.length; i++) {
         const animPos = memoryAnimRef.current.get(i);
         const hintX = animPos ? animPos.x : allMemories[i].x;
         const hintY = animPos ? animPos.y : allMemories[i].y;
-        if (!collectedRef.current.has(i) && checkProximity(player, hintX, hintY)) {
-          ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+        if (!checkProximity(player, hintX, hintY)) continue;
+        if (!collectedRef.current.has(i)) {
           if (canCollect) {
-            ctx.fillText('Press ENTER to collect!', hintX - 100, hintY - 40);
+            drawHintPill(ctx, 'PRESS ENTER TO COLLECT!', hintX, hintY - 52, { time });
           } else {
-            ctx.fillText('Find the trombone first!', hintX - 110, hintY - 40);
+            drawHintPill(ctx, 'FIND THE TROMBONE FIRST!', hintX, hintY - 52, { time });
           }
+        } else {
+          drawHintPill(ctx, 'ENTER TO RE-WATCH', hintX, hintY - 52, { time, dim: true });
         }
       }
 
@@ -479,9 +596,9 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         }
       }
 
-      // Cinematic countdown overlay
+      // Cinematic countdown overlay (frozen + hidden behind the pause menu)
       const cinematic = cinematicRef.current;
-      if (cinematic) {
+      if (cinematic && !pausedRef.current) {
         const elapsed = performance.now() - cinematic.startTime;
 
         // Start music when screen goes fully black
@@ -550,8 +667,21 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       canvas.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mouseleave', onMouseLeave);
       canvas.removeEventListener('click', onCanvasClick);
+      if (viewerDelayRef.current) window.clearTimeout(viewerDelayRef.current);
+      if (viewerCloseTimerRef.current) window.clearTimeout(viewerCloseTimerRef.current);
+      viewerDelayRef.current = null;
+      viewerCloseTimerRef.current = null;
+      viewerClosingRef.current = false;
     };
-  }, [sceneKey, onBack]);
+  }, [sceneKey, onBack, handleCloseViewer, openPause, closePause]);
+
+  // Keep the concert music's mute state in sync with the master mute
+  useEffect(() => {
+    if (sceneKey !== 'concert') return;
+    const el = audioRef.current;
+    if (!el) return;
+    return sfx.registerMediaElement(el);
+  }, [sceneKey]);
 
   return (
     <>
@@ -560,7 +690,36 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
         className="fixed inset-0 z-10"
         style={{ imageRendering: 'pixelated' }}
       />
-      <ControlsOverlay showTricks={sceneKey === 'japan'} />
+      {!isTouch && <ControlsOverlay showTricks={sceneKey === 'japan'} />}
+      {isTouch && !editorMode && !paused && !viewerOpen && !infinityPoolOpen && (
+        <TouchControls showTricks={sceneKey === 'japan'} />
+      )}
+      {!editorMode && (
+        <GameHud
+          world={worldByKey[sceneKey]}
+          collected={hudCollected}
+          total={hudTotal}
+          flying={hudFlying}
+          onPause={openPause}
+        />
+      )}
+      {flash > 0 && (
+        <div
+          key={flash}
+          className="fixed inset-0 z-[140] pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(255,240,160,0.45) 0%, rgba(255,215,0,0.15) 55%, transparent 80%)',
+            animation: 'gc-flash 0.35s ease-out both',
+          }}
+        />
+      )}
+      {paused && (
+        <PauseMenu
+          onResume={closePause}
+          onBackToMap={onBack}
+          showTricks={sceneKey === 'japan'}
+        />
+      )}
 
       {/* Charizard — DOM img so the animated GIF plays natively (canvas kills animation) */}
       {sceneKey === 'tokyo' && !editorMode && (
@@ -572,7 +731,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
             }
           `}</style>
           <img
-            src="https://img.pokemondb.net/sprites/black-white/anim/normal/charizard.gif"
+            src="/pokemon/charizard.gif"
             alt="Charizard"
             style={{
               position: 'fixed',
@@ -587,7 +746,7 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
             }}
           />
           <img
-            src="https://img.pokemondb.net/sprites/black-white/anim/normal/snorlax.gif"
+            src="/pokemon/snorlax.gif"
             alt="Snorlax"
             style={{
               position: 'fixed',
@@ -779,9 +938,19 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
           0%, 100% { filter: drop-shadow(0 0 6px rgba(232,192,48,0.5)); }
           50%       { filter: drop-shadow(0 0 18px rgba(232,192,48,1)) drop-shadow(0 0 34px rgba(232,100,20,0.6)); }
         }
+        @keyframes gc-flash {
+          0%   { opacity: 1; }
+          100% { opacity: 0; }
+        }
       `}</style>
       {viewerOpen && (
-        <MemoryViewer videoSrc={viewingVideo} onClose={handleCloseViewer} />
+        <MemoryViewer
+          videoSrc={viewingVideo}
+          title={viewingMeta.title}
+          description={viewingMeta.description}
+          closing={viewerClosing}
+          onClose={handleCloseViewer}
+        />
       )}
     </>
   );

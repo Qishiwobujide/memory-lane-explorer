@@ -2,15 +2,15 @@ interface ControlsOverlayProps {
   showTricks?: boolean;
 }
 
-const controls = [
+export const controls = [
   { key: '←→', label: 'Move' },
   { key: 'SPACE', label: 'Jump (3×)' },
   { key: 'F', label: 'Fly ↑↓' },
   { key: 'ENTER', label: 'Grab Memory' },
-  { key: 'ESC', label: 'Menu' },
+  { key: 'ESC', label: 'Pause' },
 ];
 
-const trickControls = [
+export const trickControls = [
   { key: '1', label: 'Flip' },
   { key: '2', label: 'Grab' },
   { key: '3', label: 'Spin' },

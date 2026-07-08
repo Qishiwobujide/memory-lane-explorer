@@ -29,6 +29,224 @@ const castleTreeImgs: HTMLImageElement[] = [
   return img;
 });
 
+// ── Castle scene static-layer caches ─────────────────────────────────────
+// The castle background repaints everything each frame; the scenery that
+// never moves (stars, bamboo, ground strip, vignette, platform ledges) is
+// pre-rendered once per canvas size and blitted, keeping the per-frame cost
+// close to the original scene's.
+let _cstSky: HTMLCanvasElement | null = null;      // dim star field (top 45%)
+let _cstGround: HTMLCanvasElement | null = null;   // bamboo + ground + road strip
+let _cstVignette: HTMLCanvasElement | null = null; // corner darkening
+let _cstCacheKey = '';
+const _cstLedges = new Map<string, HTMLCanvasElement>();
+
+function _mkCanvas(w: number, h: number): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.ceil(w));
+  c.height = Math.max(1, Math.ceil(h));
+  return c;
+}
+
+function ensureCastleCaches(w: number, h: number): void {
+  const key = `${w}x${h}`;
+  if (key === _cstCacheKey && _cstSky && _cstGround && _cstVignette) return;
+  _cstCacheKey = key;
+  _cstLedges.clear();
+
+  // ---- Sky: dim star field --------------------------------------------
+  _cstSky = _mkCanvas(w, h * 0.45);
+  {
+    const c = _cstSky.getContext('2d')!;
+    for (let i = 0; i < 95; i++) {
+      const sx = (i * 173 + 31) % w;
+      const sy = (i * 97 + 11) % (h * 0.42);
+      const size = 0.7 + ((i * 7) % 10) / 10 * 1.2;
+      c.fillStyle = `rgba(255,255,240,${0.28 + ((i * 11) % 10) / 10 * 0.24})`;
+      c.fillRect(sx, sy, size, size);
+    }
+  }
+
+  // ---- Ground strip: bamboo, ground, road, grass, lantern bodies -------
+  const gy0 = h * 0.74;
+  _cstGround = _mkCanvas(w, h - gy0);
+  {
+    const c = _cstGround.getContext('2d')!;
+    c.translate(0, -gy0);
+
+    // Bamboo grove silhouettes (frozen mid-sway)
+    const clump = (cx3: number, baseY: number, count: number, hMin: number, hMax: number) => {
+      for (let b = 0; b < count; b++) {
+        const seed = Math.sin(cx3 * 0.013 + b * 7.7) * 0.5 + 0.5;
+        const bx3 = cx3 + (b - count / 2) * 9 + seed * 6;
+        const bh3 = hMin + seed * (hMax - hMin);
+        const sway = Math.sin(cx3 * 0.01 + b * 1.3) * (4 + seed * 4);
+        const topX = bx3 + sway;
+        const col = `hsl(${105 + seed * 20}, 30%, ${9 + seed * 6}%)`;
+        c.strokeStyle = col;
+        c.lineWidth = 2 + seed * 1.6;
+        c.beginPath();
+        c.moveTo(bx3, baseY);
+        c.quadraticCurveTo(bx3 + sway * 0.3, baseY - bh3 * 0.55, topX, baseY - bh3);
+        c.stroke();
+        c.fillStyle = col;
+        for (let lf = 0; lf < 2; lf++) {
+          const ly = baseY - bh3 + lf * (bh3 * 0.14);
+          const lside = lf % 2 === 0 ? 1 : -1;
+          c.beginPath();
+          c.ellipse(topX + lside * 8, ly + 3, 9, 2.6, lside * 0.5, 0, Math.PI * 2);
+          c.fill();
+        }
+      }
+    };
+    clump(w * 0.045, h * 0.802, 7, h * 0.10, h * 0.17);
+    clump(w * 0.315, h * 0.802, 6, h * 0.09, h * 0.15);
+    clump(w * 0.615, h * 0.802, 8, h * 0.11, h * 0.18);
+    clump(w * 0.968, h * 0.802, 6, h * 0.10, h * 0.16);
+
+    // Ground — dark mossy hillside
+    const groundGrad = c.createLinearGradient(0, h * 0.80, 0, h);
+    groundGrad.addColorStop(0, '#141f12');
+    groundGrad.addColorStop(1, '#0c1509');
+    c.fillStyle = groundGrad;
+    c.fillRect(0, h * 0.80, w, h * 0.20);
+
+    // Stone driveway
+    const roadG = c.createLinearGradient(0, h * 0.80, 0, h * 0.826);
+    roadG.addColorStop(0, '#62584c');
+    roadG.addColorStop(1, '#4e4438');
+    c.fillStyle = roadG;
+    c.fillRect(0, h * 0.80, w, h * 0.026);
+    c.strokeStyle = 'rgba(180,162,126,0.28)';
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, h * 0.80);  c.lineTo(w, h * 0.80);  c.stroke();
+    c.beginPath(); c.moveTo(0, h * 0.826); c.lineTo(w, h * 0.826); c.stroke();
+    c.strokeStyle = 'rgba(200,182,140,0.18)';
+    c.lineWidth = 1.5;
+    c.setLineDash([44, 34]);
+    c.beginPath(); c.moveTo(0, h * 0.813); c.lineTo(w, h * 0.813); c.stroke();
+    c.setLineDash([]);
+
+    // Grass tufts along the road's top edge
+    c.fillStyle = '#22381a';
+    for (let gt = 0; gt < 44; gt++) {
+      const gx = (gt * 197 + 43) % w;
+      const seed = ((gt * 13) % 7) / 7;
+      const gyE = h * 0.80;
+      const gh3 = 4 + seed * 4;
+      c.fillRect(gx, gyE - gh3, 1.5, gh3);
+      c.fillRect(gx + 3, gyE - gh3 * 0.7, 1.5, gh3 * 0.7);
+      c.fillRect(gx - 3, gyE - gh3 * 0.55, 1.5, gh3 * 0.55);
+    }
+
+    // Stone lantern bodies (the glows stay animated in the live pass)
+    for (const lxf of [0.075, 0.355, 0.665, 0.925]) {
+      const lx3 = w * lxf;
+      const groundY2 = h * 0.80;
+      c.fillStyle = '#3e3a34';
+      c.fillRect(lx3 - 7, groundY2 - 4, 14, 4);
+      c.fillRect(lx3 - 3, groundY2 - 26, 6, 22);
+      c.fillStyle = '#46423a';
+      c.fillRect(lx3 - 9, groundY2 - 38, 18, 12);
+      c.fillStyle = '#524c42';
+      c.beginPath();
+      c.moveTo(lx3 - 12, groundY2 - 38);
+      c.lineTo(lx3, groundY2 - 46);
+      c.lineTo(lx3 + 12, groundY2 - 38);
+      c.fill();
+      c.fillStyle = '#3e3a34';
+      c.fillRect(lx3 - 1.5, groundY2 - 50, 3, 4);
+    }
+  }
+
+  // ---- Vignette --------------------------------------------------------
+  _cstVignette = _mkCanvas(w, h);
+  {
+    const c = _cstVignette.getContext('2d')!;
+    const vg = c.createRadialGradient(w / 2, h * 0.46, Math.min(w, h) * 0.45, w / 2, h * 0.52, Math.max(w, h) * 0.78);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(0.75, 'rgba(4,8,14,0.14)');
+    vg.addColorStop(1, 'rgba(2,4,10,0.4)');
+    c.fillStyle = vg;
+    c.fillRect(0, 0, w, h);
+  }
+}
+
+// Pre-rendered mossy stone ledge sprites, keyed by platform size/position
+const LEDGE_PAD_X = 10;
+const LEDGE_PAD_TOP = 8;
+const LEDGE_PAD_BOTTOM = 18;
+
+function getLedgeSprite(pw: number, ph: number, px: number): HTMLCanvasElement {
+  const key = `${Math.round(pw)}x${Math.round(ph)}@${Math.round(px)}`;
+  let sprite = _cstLedges.get(key);
+  if (sprite) return sprite;
+  sprite = _mkCanvas(pw + LEDGE_PAD_X * 2, ph + LEDGE_PAD_TOP + LEDGE_PAD_BOTTOM);
+  const c = sprite.getContext('2d')!;
+  c.translate(LEDGE_PAD_X, LEDGE_PAD_TOP);
+
+  // Soft shadow under the ledge
+  c.fillStyle = 'rgba(0,0,0,0.3)';
+  c.beginPath();
+  c.ellipse(pw / 2, ph + 5, pw * 0.48, 5, 0, 0, Math.PI * 2);
+  c.fill();
+  // Stone slab body
+  c.fillStyle = '#565244';
+  c.beginPath();
+  c.roundRect(0, 0, pw, ph, 5);
+  c.fill();
+  c.fillStyle = '#6e6a58';
+  c.fillRect(2, 1, pw - 4, ph * 0.35);
+  c.fillStyle = '#3c3830';
+  c.fillRect(2, ph - 4, pw - 4, 3);
+  // Stone joints
+  c.strokeStyle = 'rgba(30,26,20,0.45)';
+  c.lineWidth = 1;
+  const joints = Math.max(2, Math.floor(pw / 46));
+  for (let j = 1; j < joints; j++) {
+    const jx = (pw / joints) * j;
+    c.beginPath();
+    c.moveTo(jx, 3);
+    c.lineTo(jx + (j % 2 === 0 ? 2 : -2), ph - 2);
+    c.stroke();
+  }
+  // Moonlit top edge
+  c.fillStyle = 'rgba(190,205,190,0.28)';
+  c.fillRect(2, 0, pw - 4, 2);
+  // Grass fringe on top
+  c.fillStyle = '#26401c';
+  for (let g = 0; g < pw / 9; g++) {
+    const gx2 = 3 + g * 9 + ((g * 7) % 5);
+    const gh2 = 3 + ((g * 13) % 4);
+    c.fillRect(gx2, -gh2, 3, gh2 + 2);
+  }
+  c.fillStyle = '#31511f';
+  for (let g = 0; g < pw / 14; g++) {
+    const gx2 = 7 + g * 14 + ((g * 11) % 6);
+    c.fillRect(gx2, -2, 2, 3);
+  }
+  // Moss patches on the face
+  c.fillStyle = 'rgba(60,90,45,0.4)';
+  for (let m2 = 0; m2 < pw / 40; m2++) {
+    const mx2 = 8 + m2 * 40 + ((m2 * 17) % 12);
+    c.beginPath();
+    c.ellipse(mx2, ph - 4, 7, 3.5, 0, 0, Math.PI * 2);
+    c.fill();
+  }
+  // A couple of hanging vine strands
+  c.strokeStyle = 'rgba(50,80,40,0.55)';
+  c.lineWidth = 1.2;
+  for (let v = 0; v < 2; v++) {
+    const vx = pw * (0.25 + v * 0.5) + ((v * 23) % 9);
+    const vl = 8 + ((v * 31 + Math.floor(px)) % 8);
+    c.beginPath();
+    c.moveTo(vx, ph);
+    c.quadraticCurveTo(vx - 2, ph + vl * 0.6, vx + 1, ph + vl);
+    c.stroke();
+  }
+  _cstLedges.set(key, sprite);
+  return sprite;
+}
+
 export const scenes: Record<string, Scene> = {
   japan: {
     name: '⛷️ Snowboarding in Japan',
@@ -747,15 +965,50 @@ export const scenes: Record<string, Scene> = {
       ctx.fillStyle = horizGlow;
       ctx.fillRect(0, h * 0.45, w, h * 0.2);
 
-      // A handful of early stars (dusk — not full night)
-      for (let i = 0; i < 55; i++) {
-        const sx = (i * 173 + 31) % w;
-        const sy = (i * 97  + 11) % (h * 0.38);
-        const tw = Math.sin(time * 0.0008 + i) * 0.3 + 0.7;
-        ctx.fillStyle = `rgba(255,255,240,${tw * 0.55})`;
+      // Star field — dim stars pre-rendered; animated glints on a few bright ones
+      ensureCastleCaches(w, h);
+      ctx.drawImage(_cstSky!, 0, 0);
+      for (let i = 0; i < 6; i++) {
+        const sx = (i * 431 + 157) % w;
+        const sy = (i * 211 + 37) % (h * 0.36);
+        const tw = Math.sin(time * 0.0012 + i * 2.3) * 0.35 + 0.65;
+        ctx.fillStyle = `rgba(255,255,240,${tw * 0.9})`;
         ctx.beginPath();
-        ctx.arc(sx, sy, 0.8 + (i % 2) * 0.5, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 1.6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = `rgba(255,255,240,${tw * 0.35})`;
+        ctx.lineWidth = 0.7;
+        const gl = 4 + tw * 3;
+        ctx.beginPath();
+        ctx.moveTo(sx - gl, sy); ctx.lineTo(sx + gl, sy);
+        ctx.moveTo(sx, sy - gl); ctx.lineTo(sx, sy + gl);
+        ctx.stroke();
+      }
+
+      // Shooting star — a brief streak every ~9 seconds
+      {
+        const period = 9000;
+        const tt = (time % period) / period;
+        if (tt < 0.09) {
+          const p = tt / 0.09;
+          const seed = Math.floor(time / period);
+          const startX = w * (0.15 + ((seed * 53) % 60) / 100);
+          const startY = h * (0.04 + ((seed * 31) % 18) / 100);
+          const sx2 = startX + p * w * 0.14;
+          const sy2 = startY + p * h * 0.06;
+          const fade = Math.sin(p * Math.PI);
+          const tail = ctx.createLinearGradient(sx2 - 60, sy2 - 26, sx2, sy2);
+          tail.addColorStop(0, 'transparent');
+          tail.addColorStop(1, `rgba(240,248,255,${0.85 * fade})`);
+          ctx.strokeStyle = tail;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(sx2 - 60, sy2 - 26);
+          ctx.lineTo(sx2, sy2);
+          ctx.stroke();
+          ctx.fillStyle = `rgba(255,255,255,${fade})`;
+          ctx.beginPath(); ctx.arc(sx2, sy2, 1.6, 0, Math.PI * 2); ctx.fill();
+        }
       }
 
       // --- Full moon — upper right sky ---
@@ -791,6 +1044,21 @@ export const scenes: Record<string, Scene> = {
       ctx.beginPath(); ctx.arc(moonX + moonR * 0.22, moonY - moonR * 0.18, moonR * 0.17, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(moonX - moonR * 0.28, moonY + moonR * 0.22, moonR * 0.11, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(moonX + moonR * 0.05, moonY + moonR * 0.32, moonR * 0.09, 0, Math.PI * 2); ctx.fill();
+
+      // Wispy night clouds — slow drift, moonlit edges near the moon
+      for (let cl = 0; cl < 4; cl++) {
+        const drift = ((time * (0.006 + cl * 0.003) + cl * w * 0.33) % (w * 1.3)) - w * 0.15;
+        const cy = h * (0.07 + cl * 0.075);
+        const cw = w * (0.16 + (cl % 2) * 0.08);
+        const ch = h * 0.018;
+        const nearMoon = Math.abs(drift + cw / 2 - moonX) < w * 0.18 && Math.abs(cy - moonY) < h * 0.12;
+        ctx.fillStyle = nearMoon ? 'rgba(205,220,245,0.13)' : 'rgba(150,168,195,0.08)';
+        ctx.beginPath();
+        ctx.ellipse(drift + cw * 0.32, cy, cw * 0.32, ch, 0, 0, Math.PI * 2);
+        ctx.ellipse(drift + cw * 0.62, cy + ch * 0.4, cw * 0.38, ch * 0.85, 0, 0, Math.PI * 2);
+        ctx.ellipse(drift + cw * 0.85, cy - ch * 0.2, cw * 0.22, ch * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // --- Layered Moganshan mountain ridges (dusk blue-greens) ---
       const ridges = [
@@ -925,10 +1193,12 @@ export const scenes: Record<string, Scene> = {
         ctx.fillRect(x + ww / 2 - 2, y - rh - 2, 4, rh * 0.15 + 4);
       };
 
-      // Helper — arched window with amber glow
+      // Helper — arched window with amber glow (soft candle-like flicker per window)
       const drawWin = (wx: number, wy: number, ww: number, wh: number) => {
+        const flicker = 0.78 + Math.sin(time * 0.0035 + wx * 0.73 + wy * 1.31) * 0.08
+                             + Math.sin(time * 0.011 + wx * 1.7) * 0.05;
         // Amber interior
-        ctx.fillStyle = 'rgba(255,190,70,0.9)';
+        ctx.fillStyle = `rgba(255,190,70,${flicker})`;
         ctx.fillRect(wx, wy + wh * 0.38, ww, wh * 0.62);
         ctx.beginPath();
         ctx.arc(wx + ww / 2, wy + wh * 0.38, ww / 2, Math.PI, 0);
@@ -1468,27 +1738,25 @@ export const scenes: Record<string, Scene> = {
       ];
       for (const [id, xf, yf, wf, hf] of behindTrees) drawPngTree(id, xf, yf, wf, hf);
 
-      // Ground — dark mossy hillside
-      const groundGrad = ctx.createLinearGradient(0, h * 0.80, 0, h);
-      groundGrad.addColorStop(0, '#141f12');
-      groundGrad.addColorStop(1, '#0c1509');
-      ctx.fillStyle = groundGrad;
-      ctx.fillRect(0, h * 0.80, w, h * 0.20);
+      // Bamboo groves, ground, road, grass and lantern bodies — pre-rendered strip
+      ctx.drawImage(_cstGround!, 0, h * 0.74);
 
-      // Stone driveway — the approach road the MG drives along
-      const roadG = ctx.createLinearGradient(0, h * 0.80, 0, h * 0.826);
-      roadG.addColorStop(0, '#62584c'); roadG.addColorStop(1, '#4e4438');
-      ctx.fillStyle = roadG;
-      ctx.fillRect(0, h * 0.80, w, h * 0.026);
-      // Road edge lines
-      ctx.strokeStyle = 'rgba(180,162,126,0.28)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(0, h * 0.80);    ctx.lineTo(w, h * 0.80);    ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, h * 0.826);   ctx.lineTo(w, h * 0.826);   ctx.stroke();
-      // Faint dashed centre line
-      ctx.strokeStyle = 'rgba(200,182,140,0.18)'; ctx.lineWidth = 1.5;
-      ctx.setLineDash([44, 34]);
-      ctx.beginPath(); ctx.moveTo(0, h * 0.813); ctx.lineTo(w, h * 0.813); ctx.stroke();
-      ctx.setLineDash([]);
+      // Animated lantern glows over the cached bodies
+      for (const lxf of [0.075, 0.355, 0.665, 0.925]) {
+        const lx3 = w * lxf;
+        const groundY2 = h * 0.80;
+        const fl2 = 0.75 + Math.sin(time * 0.006 + lx3 * 0.05) * 0.12 + Math.sin(time * 0.017 + lx3) * 0.06;
+        // Light pool on the road
+        ctx.fillStyle = `rgba(255,190,90,${0.07 * fl2})`;
+        ctx.beginPath();
+        ctx.ellipse(lx3, groundY2 + 10, 52, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Glowing aperture — layered flat glows
+        ctx.fillStyle = `rgba(255,205,110,${0.12 * fl2})`;
+        ctx.beginPath(); ctx.arc(lx3, groundY2 - 32, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,215,130,${0.92 * fl2})`;
+        ctx.fillRect(lx3 - 6, groundY2 - 36, 12, 8);
+      }
 
       // === RIGHT HILLSIDE — NakedStable-style stone terraces, pool & suites ===
       const trL = w * 0.725;   // left edge of terrace zone
@@ -1754,6 +2022,28 @@ export const scenes: Record<string, Scene> = {
         if (img.complete && img.naturalWidth > 0)
           ctx.drawImage(img, w * obj.xFrac, h * obj.yFrac, h * obj.wFrac, h * obj.hFrac);
       }
+
+      // ── FIREFLIES — warm drifting sparks over the grounds ──────────────
+      for (let ff = 0; ff < 16; ff++) {
+        const fseed = (ff * 61 + 17) % 100 / 100;
+        const baseX = ((ff * 293 + 71) % w);
+        const baseY = h * (0.46 + ((ff * 37) % 32) / 100);
+        const fx3 = baseX + Math.sin(time * 0.00042 + ff * 2.1) * (30 + fseed * 40)
+                          + Math.sin(time * 0.0011 + ff) * 8;
+        const fy3 = baseY + Math.cos(time * 0.00035 + ff * 1.4) * (18 + fseed * 22);
+        // Each firefly pulses on its own rhythm, sometimes fully dark
+        const pulseF = Math.max(0, Math.sin(time * 0.0016 + ff * 2.7));
+        if (pulseF < 0.12) continue;
+        const fr = 1.1 + fseed * 1.1;
+        // Flat translucent halo + bright core (radial gradients are too costly per frame)
+        ctx.fillStyle = `rgba(195,245,105,${0.16 * pulseF})`;
+        ctx.beginPath(); ctx.arc(fx3, fy3, fr * 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(235,255,170,${0.95 * pulseF})`;
+        ctx.beginPath(); ctx.arc(fx3, fy3, fr, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── CINEMATIC VIGNETTE — pre-rendered corner darkening ──────────────
+      ctx.drawImage(_cstVignette!, 0, 0);
     },
     platforms: (w, h) => [
       // Ground — stone road, full width base
@@ -1775,7 +2065,18 @@ export const scenes: Record<string, Scene> = {
       { x: w * 0.60, y: h * 0.66,  width: w * 0.18, height: 16 }, // chalet level
       { x: w * 0.72, y: h * 0.74,  width: w * 0.13, height: 16 }, // hill foot right
     ],
-    drawPlatforms: () => {},
+    // Mossy stone garden ledges — makes the jumpable hill path readable.
+    // Each ledge is pre-rendered once (see getLedgeSprite) and blitted.
+    // Skips the full-width road and the two left pool structures (x === 0),
+    // which already have their own visuals in the background.
+    drawPlatforms: (ctx, platforms) => {
+      const w = ctx.canvas.width;
+      for (const p of platforms) {
+        if (p.width >= w || p.x === 0) continue;
+        const sprite = getLedgeSprite(p.width, p.height, p.x);
+        ctx.drawImage(sprite, p.x - LEDGE_PAD_X, p.y - LEDGE_PAD_TOP);
+      }
+    },
     memories: (w, h) => {
       const mep = (id: string, xf: number, yf: number) => {
         const pin = editorPins[id];
@@ -3937,7 +4238,7 @@ export const scenes: Record<string, Scene> = {
       ['pikachu',    '/pikachu-f.png'],
       ['neo20',      '/Tokyo_neo/r_2020.png'],
 
-      ['screamtail', 'https://img.pokemondb.net/sprites/scarlet-violet/normal/scream-tail.png'],
+      ['screamtail', '/pokemon/scream-tail.png'],
     ] as [string, string][]) { const img = new Image(); img.src = s; I[k] = img; }
     return {
     name: '🗼 Tokyo Sunset',
