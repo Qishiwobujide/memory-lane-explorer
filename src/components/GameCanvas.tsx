@@ -196,6 +196,15 @@ const GameCanvas = ({ sceneKey, onBack }: GameCanvasProps) => {
       return [];
     };
 
+    // Dev-only debug hook so automated tests can read live positions
+    if (import.meta.env.DEV) {
+      (window as unknown as Record<string, unknown>).__dbg = {
+        player,
+        memories: () => getAllMemories(canvas.width, canvas.height),
+        collected: () => [...collectedRef.current],
+      };
+    }
+
     // Init driving memories immediately at scene start
     const initialMemories = getAllMemories(canvas.width, canvas.height);
     setHudTotal(initialMemories.length);

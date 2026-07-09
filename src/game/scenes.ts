@@ -52,6 +52,7 @@ function ensureCastleCaches(w: number, h: number): void {
   if (key === _cstCacheKey && _cstSky && _cstGround && _cstVignette) return;
   _cstCacheKey = key;
   _cstLedges.clear();
+  _cstClouds.clear();
 
   // ---- Sky: dim star field --------------------------------------------
   _cstSky = _mkCanvas(w, h * 0.45);
@@ -67,7 +68,8 @@ function ensureCastleCaches(w: number, h: number): void {
   }
 
   // ---- Ground strip: bamboo, ground, road, grass, lantern bodies -------
-  const gy0 = h * 0.74;
+  // Starts at h*0.58 so the tallest bamboo (top ≈ h*0.62) isn't clipped.
+  const gy0 = h * 0.58;
   _cstGround = _mkCanvas(w, h - gy0);
   {
     const c = _cstGround.getContext('2d')!;
@@ -169,6 +171,25 @@ function ensureCastleCaches(w: number, h: number): void {
     c.fillStyle = vg;
     c.fillRect(0, 0, w, h);
   }
+}
+
+// Pre-rendered wispy cloud sprites, keyed by size
+const _cstClouds = new Map<string, HTMLCanvasElement>();
+function getCloudSprite(cw: number, ch: number): HTMLCanvasElement {
+  const key = `${Math.round(cw)}x${Math.round(ch)}`;
+  let sprite = _cstClouds.get(key);
+  if (sprite) return sprite;
+  sprite = _mkCanvas(cw * 1.1, ch * 3.4);
+  const c = sprite.getContext('2d')!;
+  const cy = ch * 1.2;
+  c.fillStyle = 'rgba(205,220,245,0.13)';
+  c.beginPath();
+  c.ellipse(cw * 0.32, cy, cw * 0.32, ch, 0, 0, Math.PI * 2);
+  c.ellipse(cw * 0.62, cy + ch * 0.4, cw * 0.38, ch * 0.85, 0, 0, Math.PI * 2);
+  c.ellipse(cw * 0.85, cy - ch * 0.2, cw * 0.22, ch * 0.7, 0, 0, Math.PI * 2);
+  c.fill();
+  _cstClouds.set(key, sprite);
+  return sprite;
 }
 
 // Pre-rendered mossy stone ledge sprites, keyed by platform size/position
@@ -276,7 +297,28 @@ export const scenes: Record<string, Scene> = {
       ctx.arc(sunX, sunY, 22, 0, Math.PI * 2);
       ctx.fill();
 
-      // Distant mountain peaks
+      // Distant haze band — separates far peaks from the sky
+      const hazeG = ctx.createLinearGradient(0, h * 0.30, 0, h * 0.62);
+      hazeG.addColorStop(0, 'rgba(190,220,240,0)');
+      hazeG.addColorStop(1, 'rgba(190,220,240,0.30)');
+      ctx.fillStyle = hazeG;
+      ctx.fillRect(0, h * 0.30, w, h * 0.32);
+
+      // Far ridge line behind the main peaks (pale, atmospheric)
+      ctx.fillStyle = 'rgba(120,165,200,0.45)';
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.62);
+      ctx.lineTo(w * 0.10, h * 0.34);
+      ctx.lineTo(w * 0.26, h * 0.50);
+      ctx.lineTo(w * 0.40, h * 0.30);
+      ctx.lineTo(w * 0.56, h * 0.48);
+      ctx.lineTo(w * 0.72, h * 0.28);
+      ctx.lineTo(w * 0.88, h * 0.46);
+      ctx.lineTo(w, h * 0.36);
+      ctx.lineTo(w, h * 0.62);
+      ctx.fill();
+
+      // Distant mountain peaks — sunlit face + shadowed face
       const peaks = [
         { x: 0.05, peak: 0.28, w: 0.28 },
         { x: 0.2, peak: 0.18, w: 0.32 },
@@ -285,19 +327,101 @@ export const scenes: Record<string, Scene> = {
         { x: 0.8, peak: 0.24, w: 0.25 },
       ];
       for (const p of peaks) {
-        ctx.fillStyle = '#4a7da0';
+        const apexX = w * (p.x + p.w / 2);
+        const apexY = h * p.peak;
+        const baseY = h * 0.62;
+        // Shadow face (left, away from the sun at top-right)
+        ctx.fillStyle = '#3c688a';
         ctx.beginPath();
-        ctx.moveTo(w * p.x, h * 0.62);
-        ctx.lineTo(w * (p.x + p.w / 2), h * p.peak);
-        ctx.lineTo(w * (p.x + p.w), h * 0.62);
+        ctx.moveTo(w * p.x, baseY);
+        ctx.lineTo(apexX, apexY);
+        ctx.lineTo(apexX, baseY);
         ctx.fill();
-        // Snow cap
-        ctx.fillStyle = 'rgba(230,245,255,0.92)';
+        // Lit face (right)
+        ctx.fillStyle = '#557fa8';
         ctx.beginPath();
-        ctx.moveTo(w * (p.x + p.w / 2), h * p.peak);
-        ctx.lineTo(w * (p.x + p.w / 2 - 0.04), h * (p.peak + 0.1));
-        ctx.lineTo(w * (p.x + p.w / 2 + 0.04), h * (p.peak + 0.1));
+        ctx.moveTo(apexX, baseY);
+        ctx.lineTo(apexX, apexY);
+        ctx.lineTo(w * (p.x + p.w), baseY);
         ctx.fill();
+        // Snow cap — follows both faces, brighter on the lit side
+        ctx.fillStyle = 'rgba(214,235,250,0.9)';
+        ctx.beginPath();
+        ctx.moveTo(apexX, apexY);
+        ctx.lineTo(w * (p.x + p.w / 2 - 0.045), h * (p.peak + 0.11));
+        ctx.lineTo(w * (p.x + p.w / 2 - 0.012), h * (p.peak + 0.085));
+        ctx.lineTo(apexX, h * (p.peak + 0.1));
+        ctx.fill();
+        ctx.fillStyle = 'rgba(240,250,255,0.95)';
+        ctx.beginPath();
+        ctx.moveTo(apexX, apexY);
+        ctx.lineTo(apexX, h * (p.peak + 0.1));
+        ctx.lineTo(w * (p.x + p.w / 2 + 0.015), h * (p.peak + 0.08));
+        ctx.lineTo(w * (p.x + p.w / 2 + 0.045), h * (p.peak + 0.11));
+        ctx.fill();
+      }
+
+      // ── GONDOLA LIFT — cable spanning the valley with moving cabins ──
+      {
+        const cabX1 = w * 0.02,  cabY1 = h * 0.335;
+        const cabX2 = w * 0.965, cabY2 = h * 0.115;
+        const sagY = h * 0.045; // cable sag at midpoint
+        const cableAt = (t: number) => ({
+          x: cabX1 + (cabX2 - cabX1) * t,
+          y: cabY1 + (cabY2 - cabY1) * t + Math.sin(t * Math.PI) * sagY,
+        });
+        // Support pylons
+        for (const pt of [0.22, 0.58, 0.88]) {
+          const pos = cableAt(pt);
+          ctx.strokeStyle = '#4a5a68';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y - 4);
+          ctx.lineTo(pos.x, pos.y + h * 0.06);
+          ctx.stroke();
+          // Cross-arm
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(pos.x - 10, pos.y - 2);
+          ctx.lineTo(pos.x + 10, pos.y - 2);
+          ctx.stroke();
+        }
+        // Cable
+        ctx.strokeStyle = 'rgba(40,55,70,0.75)';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(cabX1, cabY1);
+        for (let t = 0.05; t <= 1.001; t += 0.05) {
+          const pos = cableAt(t);
+          ctx.lineTo(pos.x, pos.y);
+        }
+        ctx.stroke();
+        // Cabins gliding up the cable, evenly spaced
+        for (let cb = 0; cb < 4; cb++) {
+          const t = ((time * 0.0000225 + cb * 0.25) % 1);
+          const pos = cableAt(t);
+          const swing = Math.sin(time * 0.0016 + cb * 1.7) * 0.055;
+          ctx.save();
+          ctx.translate(pos.x, pos.y);
+          ctx.rotate(swing);
+          // Hanger arm
+          ctx.strokeStyle = '#2e3e4a';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 9); ctx.stroke();
+          // Cabin body
+          ctx.fillStyle = '#c0392b';
+          ctx.beginPath(); ctx.roundRect(-9, 9, 18, 14, 3); ctx.fill();
+          // Window band
+          ctx.fillStyle = 'rgba(180,225,250,0.9)';
+          ctx.fillRect(-7, 12, 14, 5);
+          // Roof cap
+          ctx.fillStyle = '#8e2418';
+          ctx.fillRect(-9, 9, 18, 2.5);
+          // Snow dusting on roof
+          ctx.fillStyle = 'rgba(235,248,255,0.85)';
+          ctx.fillRect(-8, 8.4, 16, 1.6);
+          ctx.restore();
+        }
       }
 
       // ── Shared helper: floating memory description label ─────────
@@ -363,6 +487,26 @@ export const scenes: Record<string, Scene> = {
         ctx.stroke();
       }
 
+      // Sun-glitter on the snow — tiny sparkles that twinkle in and out
+      for (let sp = 0; sp < 22; sp++) {
+        const fx = ((sp * 137 + 29) % 100) / 100;
+        // Approximate slope surface height at this x, plus scatter below it
+        const slopeY = 0.24 + fx * 0.58;
+        const fy = slopeY + (((sp * 71) % 30) / 100) * (1 - slopeY / 1.1);
+        const tw = Math.sin(time * 0.003 + sp * 2.9);
+        if (tw < 0.55) continue; // each sparkle only glints briefly
+        const a = (tw - 0.55) / 0.45;
+        const sx2 = fx * w;
+        const sy2 = fy * h;
+        ctx.strokeStyle = `rgba(255,255,255,${0.85 * a})`;
+        ctx.lineWidth = 1;
+        const g = 2 + a * 2.5;
+        ctx.beginPath();
+        ctx.moveTo(sx2 - g, sy2); ctx.lineTo(sx2 + g, sy2);
+        ctx.moveTo(sx2, sy2 - g); ctx.lineTo(sx2, sy2 + g);
+        ctx.stroke();
+      }
+
       // Pine trees along the slope edges
       const treeData = [
         { xi: 0.0, yi: 0.28, spacing: 0.055, count: 8, side: 'left' },
@@ -418,6 +562,25 @@ export const scenes: Record<string, Scene> = {
       ctx.fillStyle = 'rgba(255,235,120,0.95)';
       ctx.fillText('❄  SKI RESORT  ❄', signX + 73, signY - 7);
       ctx.textAlign = 'left';
+      // Fresh snow piled on top of the board — lumpy drifts
+      ctx.fillStyle = 'rgba(238,248,255,0.95)';
+      ctx.beginPath();
+      ctx.moveTo(signX - 8, signY - 54);
+      ctx.quadraticCurveTo(signX + 14, signY - 66, signX + 38, signY - 58);
+      ctx.quadraticCurveTo(signX + 60, signY - 68, signX + 88, signY - 59);
+      ctx.quadraticCurveTo(signX + 116, signY - 67, signX + 140, signY - 57);
+      ctx.quadraticCurveTo(signX + 152, signY - 60, signX + 154, signY - 54);
+      ctx.lineTo(signX - 8, signY - 54);
+      ctx.fill();
+      // Icicles under the board's front edge
+      ctx.fillStyle = 'rgba(205,235,255,0.85)';
+      for (const [ix, il] of [[16, 9], [52, 13], [90, 8], [124, 12]] as [number, number][]) {
+        ctx.beginPath();
+        ctx.moveTo(signX - 8 + ix, signY + 4);
+        ctx.lineTo(signX - 8 + ix + 3, signY + 4 + il);
+        ctx.lineTo(signX - 8 + ix + 6, signY + 4);
+        ctx.fill();
+      }
     
 
       // ── YAACOV OUGIYA HOTEL ─────────────────────────────────────
@@ -804,6 +967,11 @@ export const scenes: Record<string, Scene> = {
     ],
     drawPlatforms: (ctx, platforms) => {
       for (const p of platforms) {
+        // Soft shadow cast on the slope below
+        ctx.fillStyle = 'rgba(60,100,150,0.14)';
+        ctx.beginPath();
+        ctx.ellipse(p.x + p.width / 2, p.y + p.height + 10, p.width * 0.46, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
         // Snow ramp body
         const rampGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
         rampGrad.addColorStop(0, '#dff2fc');
@@ -815,17 +983,43 @@ export const scenes: Record<string, Scene> = {
         ctx.lineTo(p.x + p.width, p.y);
         ctx.lineTo(p.x + p.width, p.y + p.height);
         ctx.fill();
-        // Icy top surface
-        ctx.fillStyle = 'rgba(200,235,255,0.9)';
-        ctx.fillRect(p.x + 10, p.y, p.width - 10, 5);
+        // Fluffy snow lip along the top — soft overlapping mounds
+        ctx.fillStyle = 'rgba(245,252,255,0.95)';
+        const mounds = Math.max(4, Math.floor(p.width / 34));
+        for (let m = 0; m <= mounds; m++) {
+          const mx3 = p.x + 10 + ((p.width - 10) / mounds) * m;
+          const mr = 7 + ((m * 13 + Math.floor(p.x)) % 5);
+          ctx.beginPath();
+          ctx.ellipse(mx3, p.y + 1, mr, 4.5, 0, Math.PI, 0);
+          ctx.fill();
+        }
+        // Icy blue mid-band (compacted layer)
+        ctx.fillStyle = 'rgba(150,205,240,0.55)';
+        ctx.fillRect(p.x + 6, p.y + p.height * 0.55, p.width - 6, 3);
         // Shadow underside
-        ctx.fillStyle = 'rgba(60,110,160,0.25)';
+        ctx.fillStyle = 'rgba(60,110,160,0.3)';
         ctx.fillRect(p.x, p.y + p.height - 6, p.width, 6);
-        // Sparkle dots
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        // Icicles hanging from the underside — deterministic per platform
+        ctx.fillStyle = 'rgba(190,228,252,0.9)';
+        const nIce = Math.max(3, Math.floor(p.width / 60));
+        for (let ic = 0; ic < nIce; ic++) {
+          const ix2 = p.x + 14 + (ic * 97 + Math.floor(p.y)) % (p.width - 28);
+          const il2 = 7 + ((ic * 31 + Math.floor(p.x)) % 9);
+          ctx.beginPath();
+          ctx.moveTo(ix2 - 3, p.y + p.height);
+          ctx.lineTo(ix2, p.y + p.height + il2);
+          ctx.lineTo(ix2 + 3, p.y + p.height);
+          ctx.fill();
+          // Bright core line
+          ctx.fillStyle = 'rgba(240,250,255,0.7)';
+          ctx.fillRect(ix2 - 0.5, p.y + p.height, 1, il2 * 0.7);
+          ctx.fillStyle = 'rgba(190,228,252,0.9)';
+        }
+        // Sparkle dots on the lip
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
         for (let s = 0; s < 4; s++) {
           ctx.beginPath();
-          ctx.arc(p.x + 20 + s * (p.width / 5), p.y + 2, 2, 0, Math.PI * 2);
+          ctx.arc(p.x + 20 + s * (p.width / 5), p.y, 1.6, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -899,35 +1093,97 @@ export const scenes: Record<string, Scene> = {
         ctx.restore();
 
       } else if (mem.type === 'gate') {
-        // Torii gate
+        // Torii gate — vermilion, with curved kasagi, plaque and snow caps
         ctx.save();
         ctx.translate(mx, my + pulse * 0.5);
-        // Posts
+
+        // Soft red aura behind the gate
+        ctx.fillStyle = `rgba(231,76,60,${0.10 + Math.sin(time * 0.003) * 0.04})`;
+        ctx.beginPath();
+        ctx.ellipse(0, 5, 46, 42, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pillars — slight inward lean, with darker shading edge
+        for (const side of [-1, 1]) {
+          ctx.fillStyle = '#c0392b';
+          ctx.beginPath();
+          ctx.moveTo(side * 24 - 4, -8);
+          ctx.lineTo(side * 24 + 4, -8);
+          ctx.lineTo(side * 19 + 4, 42);
+          ctx.lineTo(side * 19 - 4, 42);
+          ctx.fill();
+          // Inner shading
+          ctx.fillStyle = '#96281b';
+          ctx.beginPath();
+          ctx.moveTo(side * 24 + (side > 0 ? 1 : -4), -8);
+          ctx.lineTo(side * 24 + (side > 0 ? 4 : -1), -8);
+          ctx.lineTo(side * 19 + (side > 0 ? 4 : -1), 42);
+          ctx.lineTo(side * 19 + (side > 0 ? 1 : -4), 42);
+          ctx.fill();
+          // Black pillar base (nemaki)
+          ctx.fillStyle = '#1c1c22';
+          ctx.fillRect(side * 19 - 5, 36, 10, 6);
+        }
+
+        // Nuki — tie beam passing through both pillars
         ctx.fillStyle = '#c0392b';
-        ctx.fillRect(-20, -10, 6, 50);
-        ctx.fillRect(14, -10, 6, 50);
-        // Top beam
-        ctx.fillRect(-26, -18, 52, 7);
-        // Second beam
-        ctx.fillRect(-22, -6, 44, 5);
-        // Beam tips curve up
-        ctx.fillStyle = '#e74c3c';
-        ctx.beginPath();
-        ctx.moveTo(-26, -18);
-        ctx.quadraticCurveTo(-22, -28, -14, -24);
-        ctx.lineTo(-14, -18);
+        ctx.fillRect(-30, -4, 60, 6);
+        ctx.fillStyle = '#96281b';
+        ctx.fillRect(-30, 0, 60, 2);
+
+        // Gakuzuka — central plaque between nuki and kasagi
+        ctx.fillStyle = '#1c1c22';
+        ctx.fillRect(-6, -16, 12, 13);
+        ctx.fillStyle = '#e8c860';
+        ctx.fillRect(-4.5, -14.5, 9, 10);
+        ctx.fillStyle = '#96281b';
+        ctx.font = 'bold 8px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('山', 0, -6.5);
+        ctx.textAlign = 'left';
+
+        // Shimaki + kasagi — double top lintel with upswept ends
+        ctx.fillStyle = '#c0392b';
+        ctx.fillRect(-32, -22, 64, 6); // shimaki (straight lower lintel)
+        ctx.fillStyle = '#a52d1f';
+        ctx.beginPath(); // kasagi (curved upper lintel)
+        ctx.moveTo(-38, -24);
+        ctx.quadraticCurveTo(0, -32, 38, -24);
+        ctx.lineTo(36, -29);
+        ctx.quadraticCurveTo(0, -37, -36, -29);
+        ctx.closePath();
         ctx.fill();
+        // Black kasagi cap
+        ctx.fillStyle = '#1c1c22';
         ctx.beginPath();
-        ctx.moveTo(26, -18);
-        ctx.quadraticCurveTo(22, -28, 14, -24);
-        ctx.lineTo(14, -18);
+        ctx.moveTo(-38, -28);
+        ctx.quadraticCurveTo(0, -36, 38, -28);
+        ctx.lineTo(37, -31);
+        ctx.quadraticCurveTo(0, -39, -37, -31);
+        ctx.closePath();
         ctx.fill();
-        // Glow
+
+        // Snow resting on the kasagi
+        ctx.fillStyle = 'rgba(240,250,255,0.94)';
+        ctx.beginPath();
+        ctx.moveTo(-37, -31);
+        ctx.quadraticCurveTo(-20, -38, -6, -34.5);
+        ctx.quadraticCurveTo(8, -39.5, 22, -34.5);
+        ctx.quadraticCurveTo(32, -36.5, 37, -31);
+        ctx.quadraticCurveTo(0, -38.5, -37, -31);
+        ctx.fill();
+        // Small snow tufts on the nuki ends
+        ctx.beginPath();
+        ctx.ellipse(-27, -5.5, 4.5, 2, 0, Math.PI, 0);
+        ctx.ellipse(27, -5.5, 4.5, 2, 0, Math.PI, 0);
+        ctx.fill();
+
+        // Warm glow outline
         ctx.shadowColor = '#e74c3c';
         ctx.shadowBlur = 12 + pulse;
-        ctx.strokeStyle = 'rgba(255,80,80,0.4)';
+        ctx.strokeStyle = 'rgba(255,110,90,0.35)';
         ctx.lineWidth = 2;
-        ctx.strokeRect(-27, -29, 54, 79);
+        ctx.strokeRect(-40, -38, 80, 82);
         ctx.restore();
       }
     },
@@ -1045,19 +1301,16 @@ export const scenes: Record<string, Scene> = {
       ctx.beginPath(); ctx.arc(moonX - moonR * 0.28, moonY + moonR * 0.22, moonR * 0.11, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(moonX + moonR * 0.05, moonY + moonR * 0.32, moonR * 0.09, 0, Math.PI * 2); ctx.fill();
 
-      // Wispy night clouds — slow drift, moonlit edges near the moon
+      // Wispy night clouds — cached sprite drifting slowly, brighter near the moon
       for (let cl = 0; cl < 4; cl++) {
         const drift = ((time * (0.006 + cl * 0.003) + cl * w * 0.33) % (w * 1.3)) - w * 0.15;
         const cy = h * (0.07 + cl * 0.075);
         const cw = w * (0.16 + (cl % 2) * 0.08);
         const ch = h * 0.018;
         const nearMoon = Math.abs(drift + cw / 2 - moonX) < w * 0.18 && Math.abs(cy - moonY) < h * 0.12;
-        ctx.fillStyle = nearMoon ? 'rgba(205,220,245,0.13)' : 'rgba(150,168,195,0.08)';
-        ctx.beginPath();
-        ctx.ellipse(drift + cw * 0.32, cy, cw * 0.32, ch, 0, 0, Math.PI * 2);
-        ctx.ellipse(drift + cw * 0.62, cy + ch * 0.4, cw * 0.38, ch * 0.85, 0, 0, Math.PI * 2);
-        ctx.ellipse(drift + cw * 0.85, cy - ch * 0.2, cw * 0.22, ch * 0.7, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = nearMoon ? 1 : 0.6;
+        ctx.drawImage(getCloudSprite(cw, ch), drift, cy - ch * 1.2);
+        ctx.globalAlpha = 1;
       }
 
       // --- Layered Moganshan mountain ridges (dusk blue-greens) ---
@@ -1739,7 +1992,7 @@ export const scenes: Record<string, Scene> = {
       for (const [id, xf, yf, wf, hf] of behindTrees) drawPngTree(id, xf, yf, wf, hf);
 
       // Bamboo groves, ground, road, grass and lantern bodies — pre-rendered strip
-      ctx.drawImage(_cstGround!, 0, h * 0.74);
+      ctx.drawImage(_cstGround!, 0, h * 0.58);
 
       // Animated lantern glows over the cached bodies
       for (const lxf of [0.075, 0.355, 0.665, 0.925]) {

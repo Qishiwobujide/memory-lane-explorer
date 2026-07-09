@@ -236,6 +236,31 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, time: 
     ctx.ellipse(sbMid + 3, sbY + sbH + 4, sbW * 0.42, 3.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    // ── Powder spray kicked up behind the board while carving ──
+    // Stateless: puff positions derive from time, so no particle bookkeeping.
+    // Local +x is the direction of travel (canvas is mirrored when facing
+    // left), so the spray fans out from the tail on the -x side.
+    if (player.onGround && Math.abs(player.velocityX) > 1) {
+      const intensity = Math.min(1, Math.abs(player.velocityX) / 7);
+      for (let sp = 0; sp < 7; sp++) {
+        const phase = (time * 0.004 + sp * 0.61) % 1;
+        const jx = Math.sin(sp * 12.9898 + Math.floor(time * 0.004 + sp * 0.61) * 78.233);
+        const scatter = (jx - Math.floor(jx)) - 0.5;
+        const puffX = sbL - 2 - phase * (16 + intensity * 14) + scatter * 6;
+        const puffY = sbY + sbH - 2 - phase * (10 + sp % 3 * 4) + scatter * 3;
+        const r = (1.5 + (sp % 3)) * (1 - phase * 0.55) * (0.6 + intensity * 0.6);
+        ctx.fillStyle = `rgba(255,255,255,${(0.55 - phase * 0.5) * (0.5 + intensity * 0.5)})`;
+        ctx.beginPath();
+        ctx.arc(puffX, puffY, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Dense white burst right at the tail's contact point
+      ctx.fillStyle = `rgba(255,255,255,${0.4 + intensity * 0.3})`;
+      ctx.beginPath();
+      ctx.ellipse(sbL + 1, sbY + sbH + 1, 5 + intensity * 3, 3, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     // ── Board full silhouette (base layer) ───────────────────
     // Nose curves up more steeply than tail (directional board)
     ctx.fillStyle = '#0d0d18';
